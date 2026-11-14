@@ -18,7 +18,7 @@ If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maati
 
 **You need:**
 
-- For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements.;
+- For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements.
 - a MySQL database and a `PDO` connection with `PDO::ERRMODE_EXCEPTION`;
 - the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the seven `maa_i18n_*` tables, so never apply it over live data);
 - a clock implementing `Maatify\SharedCommon\Contracts\ClockInterface` (for example `SystemClock`).
