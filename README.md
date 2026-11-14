@@ -8,7 +8,7 @@
   <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
 </picture>
 
-[![Status](https://img.shields.io/badge/Status-Published%20Release%20Candidate-blue)](CHANGELOG.md)
+[![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2)
 [![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)

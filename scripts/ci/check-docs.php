@@ -232,7 +232,7 @@ if (count($badgeRows) !== count($expectedBadgeRows)) {
     }
 }
 $requiredBadges = [
-    'Status-Published%20Release%20Candidate-blue',
+    'Status-Release%20Candidate-blue',
     'Version-' . $badgeVersion . '-blue',
     'PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF',
     'License-Proprietary-green',
