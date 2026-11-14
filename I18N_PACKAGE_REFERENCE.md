@@ -299,6 +299,12 @@ Domain-specific operations retain their distinct contracts: `changeCode` and key
 
 Not supported as consumer contract, even though visible: `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
 
+### 5.13 Management — Translation Key Preview
+
+To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Preview\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
+
+The Host authorizes these operations and controls which requests can use a preview. See [Optional Translation Key Preview](#81-optional-translation-key-preview) for the storage, expiry, and rendering contracts.
+
 ## 6. Behavioral Contracts
 
 ### 6.1 Read versus write semantics
