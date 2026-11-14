@@ -12,8 +12,16 @@ PHP_BIN="${I18N_PHP_BIN:-php}"
 
 probe_dir="$(mktemp -d)"
 trap 'rm -rf "${probe_dir}"' EXIT
-git -C "${ROOT}" clone --quiet --local --no-hardlinks . "${probe_dir}"
-cp "${ROOT}/scripts/ci/check-docs.php" "${probe_dir}/scripts/ci/check-docs.php"
+# Keep Git available for attribute checks. Copy current files for the probe.
+git -C "${ROOT}" clone --quiet --local --no-hardlinks --no-checkout . "${probe_dir}"
+git -C "${probe_dir}" read-tree HEAD
+git -C "${ROOT}" ls-files --cached --others --exclude-standard -z |
+    while IFS= read -r -d '' path; do
+        if [[ -f "${ROOT}/${path}" || -L "${ROOT}/${path}" ]]; then
+            mkdir -p "${probe_dir}/$(dirname "${path}")"
+            cp -P "${ROOT}/${path}" "${probe_dir}/${path}"
+        fi
+    done
 "${PHP_BIN}" "${probe_dir}/scripts/ci/check-docs.php" >"${probe_dir}/baseline.log" 2>&1 || {
     cat "${probe_dir}/baseline.log" >&2
     exit 1
