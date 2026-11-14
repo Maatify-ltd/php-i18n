@@ -1,6 +1,6 @@
 # Published Artifact Verification
 
-Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. For another version, verify its expected tag, reference, and exact Composer constraint before running.
+Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. For another version, set its expected tag and reference before running. For `v1.0.0-rc.2`, the procedure adds the exact Persistence RC allowance to the consumer root and keeps minimum stability at `stable`.
 
 ```bash
 set -eu
@@ -27,11 +27,16 @@ isolated_composer() {
 }
 
 cd "$work/consumer"
-printf '%s\n' '{}' > composer.json
+printf '%s\n' '{"minimum-stability":"stable"}' > composer.json
 isolated_composer --version > "$work/composer-version.txt"
 isolated_composer config --list --source > "$work/composer-config.txt"
 printf '%s\n' 'Effective install override: --prefer-install=dist' >> "$work/composer-config.txt"
-isolated_composer require "$package:${tag#v}@RC" --prefer-install=dist --no-interaction \
+requirements=("$package:${tag#v}@RC")
+if [ "$tag" = v1.0.0-rc.2 ]; then
+  requirements+=("maatify/php-persistence:1.0.0-rc.1@RC")
+fi
+printf 'Exact requirements: %s\n' "${requirements[*]}" >> "$work/composer-config.txt"
+isolated_composer require "${requirements[@]}" --prefer-install=dist --no-interaction \
   > "$work/composer-install.log" 2>&1 || { cat "$work/composer-install.log"; exit 1; }
 jq -e --arg package "$package" --arg tag "$tag" --slurpfile registry "$work/resolved-release.json" '
   .packages[] | select(.name == $package and .version == $tag)
