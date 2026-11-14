@@ -13,7 +13,7 @@ The API below describes the `1.0.0-rc.2` artifact. The published RC has its own 
 |---|---|
 | Composer identity | `maatify/php-i18n` |
 | Root namespace | `Maatify\I18n\` (PSR-4, `src/`) |
-| Distribution state at qualification | Target `1.0.0-rc.2` unpublished. Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
+| Distribution state | Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). See [GitHub Pre-release](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2). No Published Stable release or Stable support line exists. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
 | PHP | See the exact constraints in [composer.json](composer.json). |
 | Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |

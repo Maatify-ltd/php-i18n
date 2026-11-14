@@ -2,9 +2,9 @@
 
 How to integrate `maatify/php-i18n` into an application. This guide presents the contract; it does not define one. The canonical contract and the complete Public Runtime API inventory live in [I18N_PACKAGE_REFERENCE.md](../../I18N_PACKAGE_REFERENCE.md).
 
-> Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists.
+> Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). No Published Stable release or Stable support line exists.
 
-The examples below apply to the target artifact. See [requirements](../../composer.json) and use this exact command after Packagist publishes the target. The dependency allowance keeps the consumer's `minimum-stability: stable`.
+The examples below apply to `1.0.0-rc.2`. See [requirements](../../composer.json) and run this command in your Composer project. The dependency allowance keeps the consumer's `minimum-stability: stable`.
 
 ```bash
 composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC

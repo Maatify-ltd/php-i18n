@@ -8,8 +8,8 @@
   <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
 </picture>
 
-[![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](CHANGELOG.md)
-[![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](CHANGELOG.md#100-rc2)
+[![Status](https://img.shields.io/badge/Status-Published%20Release%20Candidate-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
@@ -30,7 +30,7 @@
 
 `maatify/php-i18n` is a governed, database-driven translation layer for PHP: structured keys, exact-scope translation values in MySQL, fail-soft runtime reads, management reads for admin screens, and operational coverage facts. Language identity stays with the Host: I18n stores an exact, nullable language code and never applies a fallback.
 
-Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists. The version and install badges identify the artifact target. See [Installation](#installation).
+Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). No Published Stable release or Stable support line exists. See [Installation](#installation).
 
 </div>
 
@@ -62,16 +62,10 @@ Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.
 
 ## Installation
 
-The requirements above apply to the `1.0.0-rc.2` artifact. The exact target command resolves through Packagist after that version is published. Run it in the consumer project. Both RC allowances are explicit so Composer can retain `minimum-stability: stable`.
+Run this command in your Composer project to install the published RC and its Persistence dependency. Both RC allowances are explicit so Composer can retain `minimum-stability: stable`.
 
 ```bash
 composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC
-```
-
-For the Published Release Candidate at qualification, use the exact `rc.1` command and follow its [release-specific usage guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
-
-```bash
-composer require maatify/php-i18n:1.0.0-rc.1@RC
 ```
 
 For `1.0.0-rc.2`, create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
@@ -177,7 +171,7 @@ Maintained examples cover every material capability and run against a disposable
 | Examples | every example smoke-executed |
 | Release artifact verification | [Archive verification procedure](docs/guides/RELEASE_ARTIFACT_VERIFICATION.md) |
 | Composer audit and platform requirements | enforced |
-| Release | Artifact target `1.0.0-rc.2`. See [CHANGELOG.md](CHANGELOG.md) |
+| Release | Published Release Candidate `1.0.0-rc.2`. See [CHANGELOG.md](CHANGELOG.md) |
 
 ## Development and Testing
 
