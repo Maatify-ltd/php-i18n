@@ -10,6 +10,7 @@ A consumer that is **not** the package repository can install the package and us
 - **Production autoload only:** `bin/verify.php` loads `vendor/autoload.php` of this root. It never includes files from `src/`, and it does not use the package's `autoload-dev`, tests, bootstrap or fixtures, nor any Host namespace or autoload.
 - **No hidden requirement:** PHP-DI and `psr/container` are absent, and the Core is built by plain construction.
 - **Real persistence:** the canonical schema shipped with the installed package is applied to a disposable MySQL database, and a realistic workflow runs through the public API: governance, key creation, exact translation writes and reads, exact missing behavior, the exception contract, transaction participation, language-code re-key, derived-state rebuild, and teardown.
+- **Optional preview:** the consumer installs the optional schema from the Composer dependency and uses the public API to activate, load, apply, and stop a preview. Normal translation reads remain available.
 - **Repeatable:** every run starts from a clean consumer state (no `vendor/`, no `composer.lock`, a fresh database), and the deterministic result lines of two runs must be identical.
 
 ## Run it

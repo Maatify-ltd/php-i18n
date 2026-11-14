@@ -38,6 +38,7 @@ use Maatify\I18n\Management\Service\I18nOperationalReadService;
 use Maatify\I18n\Management\Service\I18nScopeDomainManagementService;
 use Maatify\I18n\Management\Service\I18nScopeManagementService;
 use Maatify\I18n\Management\Service\I18nStatsRebuilder;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Management\Service\TranslationWriteService;
 use Maatify\I18n\Repository\Mysql\MysqlDomainLanguageSummaryRepository;
 use Maatify\I18n\Repository\Mysql\MysqlDomainRepository;
@@ -50,6 +51,7 @@ use Maatify\I18n\Repository\Mysql\MysqlTranslationQueryRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
+use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 
@@ -217,7 +219,7 @@ try {
     );
     sort($tables);
     same(
-        'the canonical schema creates exactly the seven Package-owned tables',
+        'the canonical schema creates exactly the seven core Package tables',
         ([
             'maa_i18n_domain_language_summary',
             'maa_i18n_domain_scopes',
@@ -487,6 +489,28 @@ try {
     $before = $operationalRead->summaryRowCount();
     $rebuilder->fullRebuild();
     same('full rebuild reproduces the derived summary', $before, $operationalRead->summaryRowCount());
+    // 10. Install the optional schema from the Composer-installed artifact.
+    $previewSql = file_get_contents($installed . '/schema/translation-key-preview.sql');
+    if ($previewSql === false) {
+        throw new RuntimeException('The installed Package does not ship the optional preview schema.');
+    }
+
+    $pdo->exec($previewSql);
+    $previews = new TranslationKeyPreviewService($pdo, $clock);
+    $created = $previews->activate([
+        new PreviewTarget('web', 'home'),
+        new PreviewTarget('web', 'account', 'save'),
+    ], $clock->now()->modify('+10 minutes'));
+    $preview = $previews->getActive($created->id);
+    same('the installed preview API loads the saved domain selection', 'web.home.title', $preview?->labelFor('web', 'home', 'title'));
+    same(
+        'preview replaces only the selected key in the consumer message map',
+        ['save' => 'web.account.save', 'cancel' => 'Cancel'],
+        $preview?->applyToDomain('web', 'account', ['save' => 'Save', 'cancel' => 'Cancel']),
+    );
+    same('preview keeps the persisted translation available to normal readers', 'مرحبا', $reader->getValue('ar-EG', 'web', 'home', 'title'));
+    same('the consumer can stop the preview', true, $previews->deactivate($created->id));
+    same('the stopped preview is no longer active', null, $previews->getActive($created->id));
 } finally {
     $pdo->exec('DROP DATABASE IF EXISTS `' . $schemaName . '`');
 }

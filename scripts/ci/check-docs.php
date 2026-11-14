@@ -117,6 +117,8 @@ foreach ($documents as $document) {
         '/\bLatest Stable\b/i' => 'unsupported Stable-version claim',
         '/\b1\.x\b[^\n]{0,40}\bsupported\b/i' => 'unsupported Stable support-line claim',
         '/(PHP|php)[ -]?(%3E%3D|>=|\^)\s?8\.[0-3]\b/' => 'PHP constraint that contradicts composer.json (^8.4)',
+        // Escape the consumer name so the gate itself carries no literal Host reference.
+        '/\b\x41\x74\x68\x61\x72\b/i' => 'Host name inside Package documentation',
         '/LanguageCore|AdminKernel/' => 'Host name inside Package documentation',
         '/HOW_TO_USE/' => 'reference to the removed duplicate guide',
         '/llms-full\.txt/' => 'llms-full.txt is not part of this package',
