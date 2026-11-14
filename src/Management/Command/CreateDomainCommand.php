@@ -8,7 +8,7 @@ use Maatify\I18n\Exception\I18nInvalidArgumentException;
 
 /**
  * Intent: create a domain. The display position is never an input: the
- * Package appends it through maatify/persistence ordering.
+ * Package appends it through maatify/php-persistence ordering.
  */
 final readonly class CreateDomainCommand
 {

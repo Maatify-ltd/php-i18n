@@ -12,7 +12,7 @@ use Maatify\I18n\Exception\ScopeNotFoundException;
 use Maatify\I18n\Repository\DomainRepositoryInterface;
 use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
  * Domain <-> scope assignment.

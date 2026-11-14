@@ -14,7 +14,7 @@ use Maatify\I18n\Management\Command\UpdateDomainMetadataCommand;
 use Maatify\I18n\Management\Criteria\DomainListCriteria;
 use Maatify\I18n\Management\Criteria\ScopeDomainListCriteria;
 use Maatify\I18n\Repository\DomainRepositoryInterface;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 use PDO;
 use PDOException;
 
@@ -119,11 +119,11 @@ final readonly class MysqlDomainRepository implements DomainRepositoryInterface
     /**
      * Return a paginated domain list with the assignment flag for the supplied
      * scope. Filters and page selection come from the criteria; ordering and
-     * pagination are delegated to maatify/persistence.
+     * pagination are delegated to maatify/php-persistence.
      *
-     * @return PageResult<DomainAssignmentDTO>
+     * @return PageResultDTO<DomainAssignmentDTO>
      */
-    public function pageWithAssignment(ScopeDomainListCriteria $criteria): PageResult
+    public function pageWithAssignment(ScopeDomainListCriteria $criteria): PageResultDTO
     {
         $where = [];
         $params = [];
@@ -191,11 +191,11 @@ final readonly class MysqlDomainRepository implements DomainRepositoryInterface
     /**
      * Return filtered domains as a page; the unfiltered total remains the full
      * domain population, while the filtered count reflects the criteria.
-     * Pagination and ordering are delegated to maatify/persistence.
+     * Pagination and ordering are delegated to maatify/php-persistence.
      *
-     * @return PageResult<DomainDTO>
+     * @return PageResultDTO<DomainDTO>
      */
-    public function search(DomainListCriteria $criteria): PageResult
+    public function search(DomainListCriteria $criteria): PageResultDTO
     {
         $where = [];
         $params = [];
@@ -336,7 +336,7 @@ final readonly class MysqlDomainRepository implements DomainRepositoryInterface
         $this->support->lockOrderingScope();
     }
 
-    /** Delegate the move to maatify/persistence; false means the domain row is missing. */
+    /** Delegate the move to maatify/php-persistence; false means the domain row is missing. */
     public function moveToPosition(int $id, int $position): bool
     {
         return $this->support->moveToPosition($id, $position);

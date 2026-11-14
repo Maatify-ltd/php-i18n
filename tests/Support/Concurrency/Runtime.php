@@ -7,7 +7,7 @@
  * @author      Mohamed Abdulalim (megyptm) <mohamed@maatify.dev>
  * @since       2026-10-01 00:00
  * @see         https://www.maatify.dev Maatify.dev
- * @link        https://github.com/Maatify/php-i18n view Project on GitHub
+ * @link        https://github.com/Maatify-ltd/php-i18n view Project on GitHub
  * @note        Distributed in the hope that it will be useful - WITHOUT WARRANTY.
  */
 
@@ -30,7 +30,7 @@ use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 use PDO;
 

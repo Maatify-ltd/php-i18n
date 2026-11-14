@@ -24,8 +24,8 @@ use Maatify\I18n\Repository\ScopeRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationQueryRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use PDO;
 use Psr\Container\ContainerInterface;
@@ -55,7 +55,7 @@ use Psr\Container\ContainerInterface;
  * --------------------------------------------------------------------------
  * - No knowledge of any Host application.
  * - Relies only on external contracts: PDO and the shared Clock.
- * - Transactions use maatify/persistence (PdoTransactionRunner) on the same
+ * - Transactions use maatify/php-persistence (PdoTransactionRunner) on the same
  *   PDO connection as the repositories.
  *
  * --------------------------------------------------------------------------

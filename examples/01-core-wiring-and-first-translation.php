@@ -37,7 +37,7 @@ use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 
 echo 'Example 01 - Core wiring and the first translation', PHP_EOL;
@@ -56,7 +56,7 @@ $translationRepository = new MysqlTranslationRepository($pdo, $clock);
 $summaryRepository = new MysqlDomainLanguageSummaryRepository($pdo);
 $keyStatsRepository = new MysqlKeyStatsRepository($pdo);
 
-// 2. Transactions come from maatify/persistence, on the SAME connection.
+// 2. Transactions come from maatify/php-persistence, on the SAME connection.
 $transactions = new PdoTransactionRunner($pdo);
 
 // 3. Services.

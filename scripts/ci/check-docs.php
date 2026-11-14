@@ -161,16 +161,12 @@ if (preg_match('/^## \[1\.0\.0-rc\.1\] - 2026-10-03\R(.*?)(?=^## |\z)/ms', $chan
     || preg_match('/^- /m', $targetSection[1]) !== 1) {
     $errors[] = 'CHANGELOG.md: published 1.0.0-rc.1 must have its actual release date and initial contents';
 }
-if (preg_match('/^## \[Unreleased\]\R(.*?)(?=^## |\z)/ms', $changelog, $unreleasedSection) === 1
-    && trim($unreleasedSection[1]) !== '') {
-    $errors[] = 'CHANGELOG.md: allocated initial contents must not remain under Unreleased';
-}
 if (preg_match('/initial (?:package )?contents[^\n]*\[Unreleased\]/i', $changelog) === 1
     || str_contains($readme, '[Unreleased]')
     || str_contains($llms, '[Unreleased]')) {
     $errors[] = 'Release navigation: initial contents must not be described as Unreleased after allocation';
 }
-if (!str_ends_with(trim($changelog), '[1.0.0-rc.1]: https://github.com/Maatify/php-i18n/releases/tag/v1.0.0-rc.1')) {
+if (!str_ends_with(trim($changelog), '[1.0.0-rc.1]: https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1')) {
     $errors[] = 'CHANGELOG.md: published RC release link must be at the bottom of the file';
 }
 
@@ -224,7 +220,7 @@ if (count($badgeRows) !== count($expectedBadgeRows)) {
 $requiredBadges = [
     'Status-Release%20Candidate-blue',
     'Version-1.0.0--rc.1-blue',
-    'PHP-%5E8.4-8892BF',
+    'PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF',
     'License-Proprietary-green',
     'PHPStan-Level%20Max-4E8CAE',
     'Packagist-Distribution-blue',
@@ -320,8 +316,8 @@ foreach (['ADR-018', 'ADR-019', 'ADR-020'] as $decisionId) {
 $requiredDistributionPaths = [
     'dcos',
     'docs/decisions',
-    'dcos/ADR-018-string-codes-instead-of-fk-in-i18n.md',
-    'dcos/ADR-019-host-owned-exact-language-code-in-i18n.md',
+    'docs/decisions/ADR-018-string-codes-instead-of-fk-in-i18n.md',
+    'docs/decisions/ADR-019-host-owned-exact-language-code-in-i18n.md',
     'docs/decisions/ADR-020-nullable-translation-type-metadata.md',
     'docs/decisions/DECISIONS_INDEX.md',
     'schema/migrations/2026-10-02-translation-type.sql',

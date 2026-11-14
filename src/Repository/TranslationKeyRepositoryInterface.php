@@ -11,7 +11,7 @@ use Maatify\I18n\Exception\TranslationKeyAlreadyExistsException;
 use Maatify\I18n\Management\Command\CreateKeyCommand;
 use Maatify\I18n\Management\Command\RenameKeyCommand;
 use Maatify\I18n\Management\Criteria\KeyListCriteria;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 
 /**
  * Defines the persistence operations for translation key data used by I18n services.
@@ -67,7 +67,7 @@ interface TranslationKeyRepositoryInterface
     ): TranslationKeyCollectionDTO;
 
     /**
-     * @return PageResult<TranslationKeyDTO>
+     * @return PageResultDTO<TranslationKeyDTO>
      */
-    public function search(KeyListCriteria $criteria): PageResult;
+    public function search(KeyListCriteria $criteria): PageResultDTO;
 }

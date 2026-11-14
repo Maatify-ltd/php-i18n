@@ -5,21 +5,23 @@ declare(strict_types=1);
 namespace Maatify\I18n\Repository\Mysql;
 
 use LogicException;
+use Maatify\I18n\Exception\I18nStorageException;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\I18n\Enum\LockModeEnum;
-use Maatify\Persistence\Pdo\Ordering\ScopedOrderingConfig;
-use Maatify\Persistence\Pdo\Ordering\ScopedOrderingManager;
-use Maatify\Persistence\Pdo\Pagination\PageRequest;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
-use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
-use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
-use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
+use Maatify\PhpPersistence\Ordering\Config\ScopedOrderingConfig;
+use Maatify\PhpPersistence\Ordering\Repository\ScopedOrderingManager;
+use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
+use Maatify\PhpPersistence\Pagination\Config\PaginationConfig;
+use Maatify\PhpPersistence\Pagination\Criteria\PdoPaginationQueryDescriptor;
+use Maatify\PhpPersistence\Pagination\Repository\PdoPaginator;
+use Maatify\PhpPersistence\Pagination\Enum\SortDirectionEnum;
+use Maatify\PhpPersistence\Pagination\ValueObject\SortWhitelist;
 
 /**
  * Persistence mechanics shared by the two governance tables (scopes, domains).
  *
- * Ordering and pagination are delegated to maatify/persistence; this class only
+ * Ordering and pagination are delegated to maatify/php-persistence; this class only
  * supplies the trusted table identifiers and the domain query (filters, search,
  * selected columns, row mapping). The table name is a constant of the calling
  * repository, never user input.
@@ -52,13 +54,13 @@ final readonly class MysqlGovernanceTableSupport
      */
     public function nextPosition(): int
     {
-        return $this->ordering->getNextPosition($this->gateway->pdo(), $this->orderingConfig);
+        return $this->ordering->getNextPositionForUpdate($this->gateway->pdo(), $this->orderingConfig);
     }
 
     /**
      * Caller-owned lock that serializes concurrent position allocation. It
      * takes the same locks, in the same index order (display position, then id),
-     * as maatify/persistence takes for a move, so creates and moves contend on
+     * as maatify/php-persistence takes for a move, so creates and moves contend on
      * the first row instead of deadlocking each other. Requires an active
      * transaction.
      *
@@ -77,17 +79,32 @@ final readonly class MysqlGovernanceTableSupport
     }
 
     /**
-     * @return bool false when the row does not exist (delegated unchanged)
+     * @return bool false only when the target is missing
+     * @throws I18nStorageException if the target still exists after a failed move
      */
     public function moveToPosition(int $id, int $position): bool
     {
-        return $this->ordering->moveWithinScope(
-            $this->gateway->pdo(),
-            $this->orderingConfig,
-            null,
-            $id,
-            $position,
-        );
+        $pdo = $this->gateway->pdo();
+
+        return (new PdoTransactionRunner($pdo))->run(function () use ($pdo, $id, $position): bool {
+            if ($this->ordering->moveWithinScope($pdo, $this->orderingConfig, null, $id, $position)) {
+                return true;
+            }
+
+            // The ordering scope is still locked. Use a current read even if the Host
+            // opened a repeatable-read snapshot before the target became visible.
+            $target = $this->gateway->fetchOne(
+                'SELECT id FROM ' . $this->table . ' WHERE id = :id FOR UPDATE',
+                ['id' => $id],
+                $this->table . '.moveTarget',
+            );
+
+            if ($target !== null) {
+                throw new I18nStorageException($this->table . '.moveToPosition');
+            }
+
+            return false;
+        });
     }
 
     /** Raise LogicException when a locking read has no active transaction. */
@@ -118,7 +135,7 @@ final readonly class MysqlGovernanceTableSupport
      * @param array<string, string|int|bool|null>  $params  values bound by name
      * @param callable(array<string, mixed>): TItem $mapper
      *
-     * @return PageResult<TItem>
+     * @return PageResultDTO<TItem>
      */
     public function page(
         string $selectColumns,
@@ -128,7 +145,7 @@ final readonly class MysqlGovernanceTableSupport
         PageRequest $request,
         callable $mapper,
         string $countFrom = '',
-    ): PageResult {
+    ): PageResultDTO {
         $whereSql = $where === [] ? '' : ' WHERE ' . implode(' AND ', $where);
         $countFrom = $countFrom === '' ? $from : $countFrom;
 

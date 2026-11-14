@@ -44,7 +44,7 @@ $core->domains->create(new CreateDomainCommand('auth', 'Authentication'));
 $core->scopes->updateMetadata(new UpdateScopeMetadataCommand($webId, name: 'Public website'));
 example_expect('metadata changed', 'Public website', $core->managementRead->getScope($webId)->name);
 
-// Ordering: moveToPosition is delegated to maatify/persistence.
+// Ordering: moveToPosition is delegated to maatify/php-persistence.
 $core->scopes->moveToPosition($adminId, 1);
 $page = $core->managementRead->searchScopes(new ScopeListCriteria());
 example_expect(

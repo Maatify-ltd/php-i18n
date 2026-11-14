@@ -28,14 +28,14 @@ use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationQueryRepositoryInterface;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 
 /**
  * Management read API: details and paginated lists of the Package-owned state.
  *
  * Read-only. Not-found for a requested identity is an exception; a list over an
  * unknown parent is simply empty. Pagination mechanics come from
- * maatify/persistence (PageResult); the Host adapts the result to its own
+ * maatify/php-persistence (PageResultDTO); the Host adapts the result to its own
  * response contract.
  */
 final readonly class I18nManagementReadService
@@ -70,9 +70,9 @@ final readonly class I18nManagementReadService
     }
 
     /**
-     * @return PageResult<ScopeDTO>
+     * @return PageResultDTO<ScopeDTO>
      */
-    public function searchScopes(ScopeListCriteria $criteria): PageResult
+    public function searchScopes(ScopeListCriteria $criteria): PageResultDTO
     {
         return $this->scopes->search($criteria);
     }
@@ -91,9 +91,9 @@ final readonly class I18nManagementReadService
     }
 
     /**
-     * @return PageResult<DomainDTO>
+     * @return PageResultDTO<DomainDTO>
      */
-    public function searchDomains(DomainListCriteria $criteria): PageResult
+    public function searchDomains(DomainListCriteria $criteria): PageResultDTO
     {
         return $this->domains->search($criteria);
     }
@@ -101,9 +101,9 @@ final readonly class I18nManagementReadService
     /**
      * Domains with their assignment flag for one scope.
      *
-     * @return PageResult<DomainAssignmentDTO>
+     * @return PageResultDTO<DomainAssignmentDTO>
      */
-    public function searchScopeDomains(ScopeDomainListCriteria $criteria): PageResult
+    public function searchScopeDomains(ScopeDomainListCriteria $criteria): PageResultDTO
     {
         return $this->domains->pageWithAssignment($criteria);
     }
@@ -138,33 +138,33 @@ final readonly class I18nManagementReadService
     }
 
     /**
-     * @return PageResult<TranslationKeyDTO>
+     * @return PageResultDTO<TranslationKeyDTO>
      */
-    public function searchKeys(KeyListCriteria $criteria): PageResult
+    public function searchKeys(KeyListCriteria $criteria): PageResultDTO
     {
         return $this->keys->search($criteria);
     }
 
     /**
-     * @return PageResult<KeyTranslationSummaryDTO>
+     * @return PageResultDTO<KeyTranslationSummaryDTO>
      */
-    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResult
+    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResultDTO
     {
         return $this->queries->pageDomainKeySummaries($criteria);
     }
 
     /**
-     * @return PageResult<TranslationGridRowDTO>
+     * @return PageResultDTO<TranslationGridRowDTO>
      */
-    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResult
+    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResultDTO
     {
         return $this->queries->pageDomainTranslationGrid($criteria);
     }
 
     /**
-     * @return PageResult<LanguageTranslationValueDTO>
+     * @return PageResultDTO<LanguageTranslationValueDTO>
      */
-    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResult
+    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResultDTO
     {
         return $this->queries->pageLanguageTranslationValues($criteria);
     }

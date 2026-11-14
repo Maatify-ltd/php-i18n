@@ -11,7 +11,7 @@ use Maatify\I18n\Exception\ScopeAlreadyExistsException;
 use Maatify\I18n\Management\Command\CreateScopeCommand;
 use Maatify\I18n\Management\Command\UpdateScopeMetadataCommand;
 use Maatify\I18n\Management\Criteria\ScopeListCriteria;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 
 /**
  * Persistence boundary of the scope governance table.
@@ -41,9 +41,9 @@ interface ScopeRepositoryInterface
     public function listAll(): ScopeCollectionDTO;
 
     /**
-     * @return PageResult<ScopeDTO>
+     * @return PageResultDTO<ScopeDTO>
      */
-    public function search(ScopeListCriteria $criteria): PageResult;
+    public function search(ScopeListCriteria $criteria): PageResultDTO;
 
     /**
      * @throws ScopeAlreadyExistsException on a duplicate code (DB UNIQUE is the race authority)
@@ -80,7 +80,7 @@ interface ScopeRepositoryInterface
     public function lockOrderingScope(): void;
 
     /**
-     * Move to a display position through maatify/persistence ordering.
+     * Move to a display position through maatify/php-persistence ordering.
      *
      * @return bool false when the scope does not exist
      */

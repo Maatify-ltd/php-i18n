@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Maatify\I18n\Management\Criteria;
 
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
-use Maatify\Persistence\Pdo\Pagination\PageRequest;
+use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 
 /**
  * Search and filter input for the paginated domain list. A null filter is

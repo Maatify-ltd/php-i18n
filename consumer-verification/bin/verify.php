@@ -50,7 +50,7 @@ use Maatify\I18n\Repository\Mysql\MysqlTranslationQueryRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 
 $root = dirname(__DIR__);
@@ -171,7 +171,7 @@ same(
     ([
         'Maatify\Exceptions\\',
         'Maatify\I18n\\',
-        'Maatify\Persistence\\',
+        'Maatify\PhpPersistence\\',
         'Maatify\SharedCommon\\',
     ]),
     $prefixes,

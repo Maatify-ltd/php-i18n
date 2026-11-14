@@ -1,76 +1,70 @@
-# Standards Manifest
+# Maatify Engineering Standards Adoption Manifest
 
-## Adoption source
+## Adoption Record
 
-- **Upstream Repository:** Maatify/php-engineering-standards (https://github.com/Maatify/php-engineering-standards)
-- **Adoption Commit:** 5f872d3ef7da847cba3f82fee124a19c22f1c5c4
-- **Adoption Date / Metadata:** 2026-10-01 (upstream commit date); generalization of the Release Preparation model and separation of Publication State (#129)
-- **Floating upstream reference used:** No
+- **Overall Resolution Status:** `VALID`
+- **Adoption Model:** Selective pinned adoption
+- **Upstream Repository:** `https://github.com/Maatify-ltd/php-engineering-standards.git`
+- **Adoption Commit:** `d3dd98b8d82c8bcdd65614fe4ed80853bdcdcc73`
+- **Adoption Date:** `2026-11-14`
+- **Latest Applicability Re-evaluation:** `2026-11-14` against the exact Adoption Commit.
+- **Additional Standards:** None
+- **Explicit Exceptions/Overrides:** None
 
 ## Pinned Adoption Control Set
 
-All files below are copied from the exact Adoption Commit.
+All files below are copied from the exact Adoption Commit recorded above.
 
-- std-standards-adoption @ 4.0.0 — docs/php-engineering-standards/standards/STANDARDS_ADOPTION_STANDARD_AR.md
-- Active Profile composer-package @ 3.0.0 — docs/php-engineering-standards/standards/profiles/COMPOSER_PACKAGE_PROFILE.md
-- Active Profile repository-governance @ 3.0.0 — docs/php-engineering-standards/standards/profiles/REPOSITORY_GOVERNANCE_PROFILE.md
-- Inherited Profiles required: None (Extends: None for both active Profiles)
-- Unused Profiles copied: None
+- [Standards Adoption Standard](standards/STANDARDS_ADOPTION_STANDARD_AR.md) — `std-standards-adoption` `5.0.1`
+- [Composer Package Profile](standards/profiles/COMPOSER_PACKAGE_PROFILE.md) — `composer-package` `4.0.0`
+- [Repository Governance Profile](standards/profiles/REPOSITORY_GOVERNANCE_PROFILE.md) — `repository-governance` `3.0.0`
 
-## Active Profile Activations
+## Pinned Operational Assets Set
 
-### composer-package
+| Kind | Upstream Path | Local Path | SHA-256 |
+|---|---|---|---|
+| `skill` | `.agents/skills/maatify-standards-context-lifecycle/SKILL.md` | `.agents/skills/maatify-standards-context-lifecycle/SKILL.md` | `e86791d1d0e865610e4d77a557b3820624446ee0272cf03a49eee16aabba204b` |
+| `skill` | `.agents/skills/maatify-strict-release-acceptance/SKILL.md` | `.agents/skills/maatify-strict-release-acceptance/SKILL.md` | `95ed8a461577bf8a55ce421111cf074edff5d7f0c98fa8893371366099a2839d` |
+| `deterministic-helper` | `.agents/helpers/maatify-governance-context.php` | `.agents/helpers/maatify-governance-context.php` | `25852945a6d9fac44c8cfc55039b5a27e3aeb289e964c3e092b490e359ee5d59` |
 
-- **Profile Version:** 3.0.0
-- **Scope:** /
-- **Resolution Status:** VALID
-- **Exception State:** NONE
+## Active Profiles
 
-### repository-governance
+### Activation 1: `composer-package`
 
-- **Profile Version:** 3.0.0
-- **Scope:** /
-- **Resolution Status:** VALID
-- **Exception State:** NONE
+- **Profile Version:** `4.0.0`
+- **Scope:** `/`
+- **Resolution Status:** `VALID`
+- **Exception State:** `NONE`
+- **Activation:** [Composer Package Profile](standards/profiles/COMPOSER_PACKAGE_PROFILE.md)
+
+### Activation 2: `repository-governance`
+
+- **Profile Version:** `3.0.0`
+- **Scope:** `/`
+- **Resolution Status:** `VALID`
+- **Exception State:** `NONE`
+- **Activation:** [Repository Governance Profile](standards/profiles/REPOSITORY_GOVERNANCE_PROFILE.md)
 
 ## Resolved Applicable Standards Set
 
-- std-package-building @ 3.0.2 — docs/php-engineering-standards/standards/packages/PACKAGE_BUILDING_STANDARD.md
-- std-composer-package @ 4.0.0 — docs/php-engineering-standards/standards/packages/COMPOSER_PACKAGE_STANDARD.md
-- std-ci-workflow @ 3.0.0 — docs/php-engineering-standards/standards/packages/CI_WORKFLOW_STANDARD.md
-- std-library-presentation @ 4.0.0 — docs/php-engineering-standards/standards/packages/LIBRARY_PRESENTATION_STANDARD.md
-- std-testing @ 1.1.1 — docs/php-engineering-standards/standards/testing/TESTING_STANDARD.md
-- std-documentation-lifecycle @ 3.0.0 — docs/php-engineering-standards/standards/governance/DOCUMENTATION_LIFECYCLE_STANDARD_AR.md
-- std-php-source-documentation @ 1.0.0 — docs/php-engineering-standards/standards/php/PHP_SOURCE_DOCUMENTATION_STANDARD.md
-- std-php-coding-style @ 1.0.1 — docs/php-engineering-standards/standards/php/PHP_CODING_STYLE_STANDARD.md
-- std-ai-collaboration-workflow @ 9.0.0 — docs/php-engineering-standards/standards/ai/AI_COLLABORATION_WORKFLOW_AR.md
-- std-github-phase-stack-workflow @ 4.0.0 — docs/php-engineering-standards/standards/GITHUB_PHASE_STACK_WORKFLOW_AR.md
-- std-decision-governance @ 1.0.0 — docs/php-engineering-standards/standards/governance/DECISION_GOVERNANCE_STANDARD_AR.md
+These are the final Stage 2 applicable standards for the two activations at `/`, for this standalone PDO/MySQL Composer package. Candidate standards excluded by their canonical applicability are not listed here.
 
-## Explicit Inputs and Exceptions
+| Standard ID | Version | Local path | Resolution provenance |
+|---|---:|---|---|
+| `std-package-building` | `4.0.0` | [PACKAGE_BUILDING_STANDARD.md](standards/packages/PACKAGE_BUILDING_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone Composer package |
+| `std-composer-package` | `6.1.0` | [COMPOSER_PACKAGE_STANDARD.md](standards/packages/COMPOSER_PACKAGE_STANDARD.md) | Direct requirement of `composer-package` at `/`; repository is the standalone package root |
+| `std-ci-workflow` | `6.0.0` | [CI_WORKFLOW_STANDARD.md](standards/packages/CI_WORKFLOW_STANDARD.md) | Direct requirement of `composer-package` at `/`; package CI scope |
+| `std-library-presentation` | `6.0.0` | [LIBRARY_PRESENTATION_STANDARD.md](standards/packages/LIBRARY_PRESENTATION_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone reusable package presentation scope |
+| `std-testing` | `3.0.0` | [TESTING_STANDARD.md](standards/testing/TESTING_STANDARD.md) | Direct requirement of `composer-package` at `/`; package testing scope |
+| `std-php-source-documentation` | `1.0.0` | [PHP_SOURCE_DOCUMENTATION_STANDARD.md](standards/php/PHP_SOURCE_DOCUMENTATION_STANDARD.md) | Direct requirement of `composer-package` at `/`; the package owns manually maintained PHP source |
+| `std-php-coding-style` | `1.0.1` | [PHP_CODING_STYLE_STANDARD.md](standards/php/PHP_CODING_STYLE_STANDARD.md) | Direct requirement of `composer-package` at `/`; the package owns manually maintained PHP code |
+| `std-documentation-lifecycle` | `3.1.1` | [DOCUMENTATION_LIFECYCLE_STANDARD_AR.md](standards/governance/DOCUMENTATION_LIFECYCLE_STANDARD_AR.md) | Direct requirement of both active profiles; package owns durable documentation and repository governance records |
+| `std-decision-governance` | `1.0.0` | [DECISION_GOVERNANCE_STANDARD_AR.md](standards/governance/DECISION_GOVERNANCE_STANDARD_AR.md) | Direct requirement of `repository-governance` at `/`; Maatify repository governance applies |
+| `std-ai-collaboration-workflow` | `13.0.0` | [AI_COLLABORATION_WORKFLOW_AR.md](standards/ai/AI_COLLABORATION_WORKFLOW_AR.md) | Direct requirement of `repository-governance` at `/` |
+| `std-github-phase-stack-workflow` | `5.0.0` | [GITHUB_PHASE_STACK_WORKFLOW_AR.md](standards/GITHUB_PHASE_STACK_WORKFLOW_AR.md) | Direct requirement of `repository-governance` at `/` |
 
-- **Explicit Additional Standards:** None
-- **Explicit Exceptions/Overrides:** None
+## Resolution Summary
 
-## Frozen Profile Version Baseline
+Both profiles apply at the standalone package root and neither extends another profile. The 12 unique candidates resolve to the 11 listed standards. External Provider Verification is excluded because the package owns no provider-specific contract. The package owns PDO/MySQL repositories, schema, manually maintained PHP, tests and governance documentation, so the applicable persistence and verification clauses apply.
 
-The prior Lead-verified evidence identifies a completed VALID adoption for Maatify/php-rate-limiter at commit f9048d9d75395244fa4af26b55e6b85ff0a898c6. This execution rechecked both Profile artifacts byte-for-byte against the same paths at this Adoption Commit:
-
-- standards/profiles/COMPOSER_PACKAGE_PROFILE.md — match
-- standards/profiles/REPOSITORY_GOVERNANCE_PROFILE.md — match
-
-The frozen baseline for composer-package@3.0.0 and repository-governance@3.0.0 is confirmed; no frozen-version/content mismatch was found.
-
-## Artifact Facts Used for Applicability
-
-- This repository is a standalone reusable PHP/Composer package with Composer identity maatify/php-i18n (composer.json).
-- The package owns SQL persistence behavior: PDO/MySQL repositories, schema/schema.i18n.sql, transaction and concurrency behavior, and real-MySQL integration tests.
-- The repository contains maintained PHP source, tests, documentation, and package verification/configuration surfaces. At the S0 adoption baseline, the repository had no standalone GitHub CI workflow. Standalone CI was added later in the governed train.
-- The repository is package-only; it is not a deployable Host/Application or a Module scope, and it is not project-aware slim.
-
-## Resolution and Closure
-
-- **Structural / Transitive Resolution:** PASS — both Profiles exist, have required metadata, declare Extends: None, and their 11 unique Required Standard references exist at the exact Adoption Commit. No inheritance cycle or Explicit Additional Standard is present.
-- **Canonical Applicability Resolution:** PASS — all 11 candidates apply to the / package and repository-governance scopes, including the active SQL persistence conditions.
-- **Local Reference Closure:** PASS — relative Markdown references in the Control Set and final standards resolve within the Control Set or this Resolved Applicable Standards Set.
-- **Overall Resolution Status:** VALID
+This upgrade replaces pin `5f872d3ef7da847cba3f82fee124a19c22f1c5c4` with the exact approved upstream snapshot recorded above. No explicit additional standards or exceptions apply.

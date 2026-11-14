@@ -9,7 +9,7 @@
  *
  *   Input -> Public Call -> Result -> Boundary
  *   Criteria (+ exact codes you supply) -> management / operational read
- *   -> PageResult / DTOs -> I18n never reads your language table; you compose
+ *   -> PageResultDTO / DTOs -> I18n never reads your language table; you compose
  *
  * Usage guide: docs/guides/USAGE_GUIDE.md (sections "Management reads" and
  * "Operational facts")
@@ -28,7 +28,7 @@ use Maatify\I18n\Management\Criteria\DomainKeySummaryCriteria;
 use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Criteria\KeyListCriteria;
 use Maatify\I18n\Management\Criteria\LanguageTranslationValuesCriteria;
-use Maatify\Persistence\Pdo\Pagination\PageRequest;
+use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 
 echo 'Example 04 - Management reads and operational facts', PHP_EOL;
 
@@ -60,7 +60,7 @@ $core->writer->upsertTranslation(new UpsertTranslationCommand(
     type: null,
 ));
 
-// Paginated key list of one scope. Pagination mechanics come from maatify/persistence.
+// Paginated key list of one scope. Pagination mechanics come from maatify/php-persistence.
 $keys = $core->managementRead->searchKeys(new KeyListCriteria(
     'web',
     page: new PageRequest(page: 1, perPage: 2, sortBy: 'key_part', sortDirection: 'asc'),

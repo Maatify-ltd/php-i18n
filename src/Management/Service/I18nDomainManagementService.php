@@ -15,7 +15,7 @@ use Maatify\I18n\Management\Command\UpdateDomainMetadataCommand;
 use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\DomainRepositoryInterface;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
  * Domain governance mutations (create, metadata, active state, code change, ordering).
@@ -30,7 +30,7 @@ use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
  * same row before they decide, so they serialize with a code change instead
  * of racing it.
  *
- * Ordering is delegated to maatify/persistence (ScopedOrderingManager).
+ * Ordering is delegated to maatify/php-persistence (ScopedOrderingManager).
  */
 final readonly class I18nDomainManagementService
 {
@@ -50,7 +50,7 @@ final readonly class I18nDomainManagementService
     {
         return $this->tx->run(function () use ($command): int {
             // Serialize concurrent position allocation (caller-owned lock for
-            // ScopedOrderingManager::getNextPosition()).
+            // ScopedOrderingManager::getNextPositionForUpdate()).
             $this->repository->lockOrderingScope();
 
             return $this->repository->create($command, $this->repository->nextPosition());
@@ -139,7 +139,7 @@ final readonly class I18nDomainManagementService
     }
 
     /**
-     * Move to a display position (clamped by maatify/persistence).
+     * Move to a display position (clamped by maatify/php-persistence).
      *
      * @throws DomainNotFoundException
      */

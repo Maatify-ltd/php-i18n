@@ -29,7 +29,7 @@ use Maatify\I18n\Service\MissingCounterService;
 use Maatify\I18n\Consumer\Service\TranslationDomainReadService;
 use Maatify\I18n\Consumer\Service\TranslationReadService;
 use Maatify\I18n\Management\Service\TranslationWriteService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 use PDO;
 use PDOException;

@@ -1,7 +1,7 @@
 # Security Policy
 
-[![Maatify I18n](https://img.shields.io/badge/Maatify-I18n-blue?style=for-the-badge)](https://github.com/Maatify/php-i18n)
-[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-9C27B0?style=for-the-badge)](https://github.com/Maatify)
+[![Maatify I18n](https://img.shields.io/badge/Maatify-I18n-blue?style=for-the-badge)](https://github.com/Maatify-ltd/php-i18n)
+[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-9C27B0?style=for-the-badge)](https://github.com/Maatify-ltd)
 
 ## Current Support State
 

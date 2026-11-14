@@ -5,17 +5,19 @@ The canonical reference for the stable public, runtime and behavioral contract o
 - **Where to start:** [README.md](README.md) (overview, installation, quick usage) and [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) (integration walkthroughs).
 - **What this file does not own:** Composer facts (package identity, PHP and extension requirements, dependencies, autoload, scripts) are owned by [composer.json](composer.json). They are summarized here only where they explain runtime behavior.
 
+The API below describes the current checkout. The published RC has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
+
 ## 1. Package Facts
 
 | Fact | Value |
 |---|---|
 | Composer identity | `maatify/php-i18n` |
 | Root namespace | `Maatify\I18n\` (PSR-4, `src/`) |
-| Distribution state | Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
+| Distribution state | Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
-| PHP | `^8.4` ([composer.json](composer.json)) |
+| Checkout PHP | See the exact constraints in [composer.json](composer.json). |
 | Persistence | Package-owned MySQL schema of seven `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
-| Shared mechanics | Transactions, display ordering and pagination come from `maatify/persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
+| Shared mechanics | Transactions, display ordering and pagination come from `maatify/php-persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
 | Optional integration | PHP-DI adapter `Maatify\I18n\Adapter\PhpDi\I18nBindings`; `php-di/php-di` and `psr/container` are Composer `suggest` entries, never runtime requirements |
 
 ## 2. Scope and Non-Goals
@@ -146,7 +148,7 @@ All constructors take a `TransactionRunnerInterface` first. Fail-hard.
 - `create` returns the new id and appends the display position (a position is never an input).
 - Direct raw IDs accepted by these services (`setActive` and `changeCode`) must be positive; otherwise `I18nInvalidArgumentException` is thrown before repository access.
 - `changeCode` throws `I18nInvalidArgumentException` for a non-positive id, an empty new code or one longer than 32 (scope) or 64 (domain) characters; `ScopeInUseException` / `DomainInUseException` when the current code is used by an assignment or a key; `ScopeAlreadyExistsException` / `DomainAlreadyExistsException` when the new code is taken; `ScopeNotFoundException` / `DomainNotFoundException` for an unknown positive id.
-- `moveToPosition` is delegated to `maatify/persistence` ordering (positions are clamped); an unknown id throws `ScopeNotFoundException` / `DomainNotFoundException`.
+- `moveToPosition` is delegated to `maatify/php-persistence` ordering (positions are clamped); an unknown id throws `ScopeNotFoundException` / `DomainNotFoundException`.
 - `assign` / `unassign` throw `ScopeNotFoundException`, `DomainNotFoundException`, and respectively `DomainScopeAlreadyAssignedException` / `DomainScopeNotAssignedException`.
 - `updateMetadata` and `setActive` throw `ScopeNotFoundException` / `DomainNotFoundException` for an unknown positive id. A repeated metadata or active-state value remains a successful no-op.
 
@@ -159,24 +161,24 @@ Read-only. A requested identity that does not exist is an exception; a list over
 | Method | Result | Throws |
 |---|---|---|
 | `getScope(int $id)`, `getScopeByCode(string $code)` | `ScopeDTO` | `I18nInvalidArgumentException` for a non-positive id; `ScopeNotFoundException` |
-| `searchScopes(ScopeListCriteria)` | `PageResult<ScopeDTO>` | |
+| `searchScopes(ScopeListCriteria)` | `PageResultDTO<ScopeDTO>` | |
 | `getDomain(int $id)` | `DomainDTO` | `I18nInvalidArgumentException` for a non-positive id; `DomainNotFoundException` |
-| `searchDomains(DomainListCriteria)` | `PageResult<DomainDTO>` | |
-| `searchScopeDomains(ScopeDomainListCriteria)` | `PageResult<DomainAssignmentDTO>` (every domain with its `assigned` flag for one scope) | |
+| `searchDomains(DomainListCriteria)` | `PageResultDTO<DomainDTO>` | |
+| `searchScopeDomains(ScopeDomainListCriteria)` | `PageResultDTO<DomainAssignmentDTO>` (every domain with its `assigned` flag for one scope) | |
 | `isDomainAssigned(string $scopeCode, string $domainCode)` | `bool` | |
 | `listDomainOptionsForScope(string $scopeCode)` | `DomainOptionCollectionDTO` (`code`, `name` of the assigned domains, for selectors) | |
 | `getKey(int $keyId)` | `TranslationKeyDTO` | `I18nInvalidArgumentException` for a non-positive keyId; `TranslationKeyNotFoundException` |
-| `searchKeys(KeyListCriteria)` | `PageResult<TranslationKeyDTO>` | |
-| `pageDomainKeySummaries(DomainKeySummaryCriteria)` | `PageResult<KeyTranslationSummaryDTO>` | |
-| `pageDomainTranslationGrid(DomainTranslationGridCriteria)` | `PageResult<TranslationGridRowDTO>` | |
-| `pageLanguageTranslationValues(LanguageTranslationValuesCriteria)` | `PageResult<LanguageTranslationValueDTO>` | |
+| `searchKeys(KeyListCriteria)` | `PageResultDTO<TranslationKeyDTO>` | |
+| `pageDomainKeySummaries(DomainKeySummaryCriteria)` | `PageResultDTO<KeyTranslationSummaryDTO>` | |
+| `pageDomainTranslationGrid(DomainTranslationGridCriteria)` | `PageResultDTO<TranslationGridRowDTO>` | |
+| `pageLanguageTranslationValues(LanguageTranslationValuesCriteria)` | `PageResultDTO<LanguageTranslationValueDTO>` | |
 
 Also public:
 
 - `I18nScopeReadService(ScopeRepositoryInterface)`: `listScopes(): ScopeCollectionDTO`, `listActiveScopes(): ScopeCollectionDTO` (bounded governance lists in display order).
 - `I18nDomainReadService(DomainRepositoryInterface, DomainScopeRepositoryInterface)`: `listDomainsForScope(string $scopeCode): DomainCollectionDTO` (fail-soft: empty for an unknown scope; active domains assigned to the scope).
 
-`PageResult` and `PageRequest` (`Maatify\Persistence\Pdo\Pagination`) are owned by `maatify/persistence`; I18n only supplies filters, search, count alignment, row mapping and the sort keys below.
+`PageResultDTO` and `PageRequest` (in the `Maatify\PhpPersistence\Pagination` namespace tree) are owned by `maatify/php-persistence`; I18n only supplies filters, search, count alignment, row mapping and the sort keys below.
 
 | List | Allowed `sortBy` keys | Default sort |
 |---|---|---|
@@ -186,7 +188,7 @@ Also public:
 | translation grid | `key_part`, `language_code` | `key_part` ascending |
 | per-language values | `key_id`, `scope`, `domain`, `key_part` | `key_id` ascending |
 
-Pagination normalization (page and page-size bounds, unknown sort key fallback) follows `maatify/persistence`.
+Pagination normalization (page and page-size bounds, unknown sort key fallback) follows `maatify/php-persistence`.
 
 Every language-facing criteria input is an **exact code supplied by the Host**. I18n never reads a Host language table: the Host decides which codes are measured and composes names, ordering and activity itself.
 
@@ -285,7 +287,7 @@ Command-repository mutation return contracts follow this matrix:
 |---|---|---|
 | Scope/domain/key `create` | `int` | generated row ID |
 | Scope/domain `updateMetadata`, `setActive`; key `updateDescription` | `bool` | whether the SQL update changed a row; Services lock/read first, so an unchanged value remains a successful no-op |
-| Scope/domain `moveToPosition` | `bool` | whether the target row existed and moved; ordering mechanics are delegated to `maatify/persistence` |
+| Scope/domain `moveToPosition` | `bool` | true for a successful move or no-op, false only for a missing target; a failed move on an existing target throws `I18nStorageException` |
 | `DomainScopeRepositoryInterface::unassign` | `bool` | whether the exact mapping row was deleted |
 | `TranslationRepositoryInterface::deleteByLanguageAndKey` | `bool` | whether the exact translation row was deleted |
 
@@ -338,17 +340,17 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ### 6.3 Storage failure contract
 
-`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. Neither can masquerade as a miss, an empty list or a governance denial.
+`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. A failed ordering move also raises `I18nStorageException` when the target row still exists. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
 
 ## 7. Transactions and Concurrency
 
-- **Transaction owner:** the I18n management and write services run each operation through `maatify/persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
+- **Transaction owner:** the I18n management and write services run each operation through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
 - **No outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
 - **Outer transaction supported:** when the connection already has an active transaction, I18n participates and never commits or rolls back the caller's transaction; the original `Throwable` is preserved. Atomic composition with Host data requires the **same `PDO` connection**.
 - **Derived layers** are written in the same transaction as the authoritative change.
 - **Locks:** a mutation that creates usage of a scope or domain (create key, move key, assign) takes SHARE locks on the governance rows in the fixed order scope, domain, mapping. A code change takes the UPDATE lock on its row and checks usage with locking reads before changing the code. "Unused, then usage created, then code changed" therefore cannot orphan a key. Repository locking reads require an active transaction.
 - **Ordering:** creates take a caller-owned ordering lock before allocating the next position. An empty ordering has no row to lock, so concurrent first creates may make InnoDB pick a deadlock victim (SQLSTATE 40001), which propagates unchanged; the Host may retry.
-- **`moveToPosition`** is delegated to `maatify/persistence` ordering and manages its own consistency.
+- **`moveToPosition`** is delegated to `maatify/php-persistence` ordering and manages its own consistency.
 - **Reads** do not open transactions and take no locks.
 
 ## 8. Persistence and Schema

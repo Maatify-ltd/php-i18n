@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 The `1.0.0-rc.1` Release Candidate was published on 2026-10-03 through Packagist. No Stable release or Stable support line exists.
 
+## [Unreleased]
+
+### Changed
+
+- Migrate ordering, pagination and transactions to the exact `maatify/php-persistence:1.0.0-rc.1` trial. Checkout consumers must allow that RC in their root Composer manifest and update public Pagination and Transaction imports to the new namespace.
+- Update GitHub organization links and clarify free proprietary licensing.
+
 ## [1.0.0-rc.1] - 2026-10-03
 
 ### Added
@@ -23,4 +30,4 @@ The `1.0.0-rc.1` Release Candidate was published on 2026-10-03 through Packagist
 - Canonical Package Reference, Usage Guide, executable examples and AI-consumer navigation (`llms.txt`).
 - Package verification: Unit and real-MySQL Integration suites, a Consumer Verification Harness, example smoke execution, and a package CI workflow.
 
-[1.0.0-rc.1]: https://github.com/Maatify/php-i18n/releases/tag/v1.0.0-rc.1
+[1.0.0-rc.1]: https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1
