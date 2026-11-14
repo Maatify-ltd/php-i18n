@@ -20,6 +20,7 @@ use Maatify\I18n\Exception\ScopeInUseException;
 use Maatify\I18n\Exception\ScopeNotFoundException;
 use Maatify\I18n\Exception\I18nExceptionInterface;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
+use Maatify\I18n\Exception\I18nStorageException;
 use Maatify\I18n\Management\Command\CreateScopeCommand;
 use Maatify\I18n\Management\Command\UpdateScopeMetadataCommand;
 use Maatify\I18n\Management\Criteria\ScopeListCriteria;
@@ -253,6 +254,52 @@ final class ScopeManagementTest extends MysqlIntegrationTestCase
         $this->scopeManagement->moveToPosition($this->idOf('x'), 99);
         self::assertSame(['y', 'z', 'x'], $this->orderedCodes());
         self::assertSame([1, 2, 3], $this->positions());
+    }
+
+    public function testFailedMoveOfExistingScopePreservesHostTransaction(): void
+    {
+        $this->resetToOrdered('x', 'y', 'z');
+        $target = $this->idOf('z');
+        $pdo = $this->pdo();
+
+        // Leave the target unchanged so MySQL reports zero changed rows,
+        // while allowing the preceding shifts of other scopes to execute.
+        $pdo->exec(<<<'SQL'
+            CREATE TRIGGER keep_scope_position BEFORE UPDATE ON maa_i18n_scopes
+            FOR EACH ROW
+            SET NEW.sort_order = IF(OLD.code = 'z', OLD.sort_order, NEW.sort_order)
+            SQL);
+
+        try {
+            $pdo->beginTransaction();
+            $this->scopeManagement->setActive($this->idOf('x'), false);
+
+            try {
+                $this->scopeManagement->moveToPosition($target, 1);
+                self::fail('Expected I18nStorageException when the existing target update changes no rows');
+            } catch (I18nStorageException) {
+                self::assertTrue($pdo->inTransaction());
+            }
+
+            self::assertSame(['x', 'y', 'z'], $this->orderedCodes());
+            self::assertSame([1, 2, 3], $this->positions());
+            self::assertSame(0, $this->scalarInt("SELECT is_active FROM maa_i18n_scopes WHERE code = 'x'"));
+
+            $other = self::newConnection();
+            $seen = $other->query("SELECT is_active FROM maa_i18n_scopes WHERE code = 'x'");
+            self::assertNotFalse($seen);
+            self::assertSame(1, (int) $seen->fetchColumn());
+
+            $pdo->rollBack();
+            self::assertSame(1, $this->scalarInt("SELECT is_active FROM maa_i18n_scopes WHERE code = 'x'"));
+            self::assertSame([1, 2, 3], $this->positions());
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $pdo->exec('DROP TRIGGER keep_scope_position');
+        }
     }
 
     public function testMoveToAnInvalidPositionIsRejectedByPersistence(): void
