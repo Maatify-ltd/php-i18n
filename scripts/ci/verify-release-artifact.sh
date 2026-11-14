@@ -12,7 +12,8 @@ finish() {
 }
 trap finish EXIT
 
-git -C "${root}" clone --quiet --local --no-hardlinks --no-checkout . "${work}/source"
+git init --quiet "${work}/source"
+git -C "${work}/source" fetch --quiet --no-tags "${root}" "${sha}"
 git -C "${work}/source" checkout --quiet --detach "${sha}"
 git -C "${work}/source" archive --format=tar "${sha}" > "${work}/git.tar"
 composer --no-plugins --no-scripts --working-dir="${work}/source" archive --format=tar --dir="${work}" --file=composer
