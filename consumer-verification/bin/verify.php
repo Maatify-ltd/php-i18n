@@ -545,7 +545,7 @@ try {
     }
 
     same('Host rollback removes the uncommitted preview', null, $previews->getActive($temporary->id));
-    same('Host rollback restores the stopped preview', $saved->id, $previews->getActive($saved->id));
+    same('Host rollback restores the stopped preview', $saved->id, $previews->getActive($saved->id)?->id);
 
     $previewClock->instant = $expiry->modify('-1 microsecond');
     same('preview is active one microsecond before expiry', $saved->id, $previews->getActive($saved->id)?->id);
