@@ -16,7 +16,7 @@ The API below describes the current checkout. The published RC has its own [Pack
 | Distribution state | Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
 | Checkout PHP | See the exact constraints in [composer.json](composer.json). |
-| Persistence | Package-owned MySQL schema of seven `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
+| Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
 | Shared mechanics | Transactions, display ordering and pagination come from `maatify/php-persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
 | Optional integration | PHP-DI adapter `Maatify\I18n\Adapter\PhpDi\I18nBindings`; `php-di/php-di` and `psr/container` are Composer `suggest` entries, never runtime requirements |
 
@@ -41,12 +41,12 @@ It deliberately does **not**:
 | Directory | Responsibility |
 |---|---|
 | `Consumer/` | Runtime exact reads (`Service/`) and their result DTO (`DTO/`) |
-| `Management/` | `Command/` (write intents), `Criteria/` (list/search inputs), `Service/` (management writes, management reads, operational reads, stats rebuild, translation writes) |
+| `Management/` | `Command/` (write intents), `Criteria/` (list/search inputs), `Service/` (management writes, management reads, operational reads, stats rebuild, translation writes, optional preview management) |
 | `Service/` | Package-wide governance policy and derived-state maintenance |
 | `Repository/` | Persistence contracts; `Repository/Mysql/` holds their PDO/MySQL implementations |
 | `Adapter/PhpDi/` | The optional PHP-DI wiring |
 | `DTO/` | Result DTOs (`final readonly`, `JsonSerializable`) |
-| `Enum/`, `Exception/`, `ValueObject/` | Enums, exceptions, the `LanguageCode` and `TranslationType` value objects |
+| `Enum/`, `Exception/`, `ValueObject/` | Enums, exceptions, the `LanguageCode`, `TranslationType`, and `PreviewTarget` value objects |
 
 ### 3.1 What the Package owns and enforces
 
@@ -248,6 +248,7 @@ All carry a `PageRequest $page = new PageRequest()`. Empty required codes and no
 
 | DTO | Fields |
 |---|---|
+| `TranslationKeyPreviewDTO` | `id`, `expiresAt`, `targets`. JSON uses `expires_at` as an ISO 8601 timestamp with microseconds and targets with `scope`, `domain`, and nullable `key`. |
 | `ScopeDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `createdAt` |
 | `DomainDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `createdAt` |
 | `DomainAssignmentDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `assigned` |
@@ -297,7 +298,13 @@ Domain-specific operations retain their distinct contracts: `changeCode` and key
 
 ### 5.12 Not public API
 
-Not supported as consumer contract, even though visible: `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
+Not supported as consumer contract, even though visible: `Repository\Mysql\MysqlTranslationKeyPreviewRepository`, `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
+
+### 5.13 Management — Translation Key Preview
+
+To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Management\Service\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
+
+The Host authorizes these operations and controls which requests can use a preview. See [Optional Translation Key Preview](#81-optional-translation-key-preview) for the storage, expiry, and rendering contracts.
 
 ## 6. Behavioral Contracts
 
@@ -344,13 +351,14 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ## 7. Transactions and Concurrency
 
-- **Transaction owner:** the I18n management and write services run each operation through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
-- **No outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
+- **Transaction runner at the service layer:** translation writes, scope and domain mutations other than `moveToPosition()`, scope–domain assignment mutations, and `I18nStatsRebuilder::fullRebuild()` run through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
+- **Runner-backed operations without an outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
 - **Outer transaction supported:** when the connection already has an active transaction, I18n participates and never commits or rolls back the caller's transaction; the original `Throwable` is preserved. Atomic composition with Host data requires the **same `PDO` connection**.
+- **Translation key preview:** `Management\Service\TranslationKeyPreviewService` executes directly on the Host-supplied `PDO`. Its statements participate in any transaction already open on that connection. The Host retains responsibility for starting, committing, and rolling back its transaction. See [section 8.1](#81-optional-translation-key-preview).
 - **Derived layers** are written in the same transaction as the authoritative change.
 - **Locks:** a mutation that creates usage of a scope or domain (create key, move key, assign) takes SHARE locks on the governance rows in the fixed order scope, domain, mapping. A code change takes the UPDATE lock on its row and checks usage with locking reads before changing the code. "Unused, then usage created, then code changed" therefore cannot orphan a key. Repository locking reads require an active transaction.
 - **Ordering:** creates take a caller-owned ordering lock before allocating the next position. An empty ordering has no row to lock, so concurrent first creates may make InnoDB pick a deadlock victim (SQLSTATE 40001), which propagates unchanged; the Host may retry.
-- **`moveToPosition`** is delegated to `maatify/php-persistence` ordering and manages its own consistency.
+- **`moveToPosition()`** for scopes and domains uses `PdoTransactionRunner` inside `MysqlGovernanceTableSupport`. The runner wraps the reorder performed by `ScopedOrderingManager` and the follow-up locking read when the reorder reports failure.
 - **Reads** do not open transactions and take no locks.
 
 ## 8. Persistence and Schema
@@ -364,6 +372,23 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 - **No soft delete.** Translations hard-delete; per-key stats cascade from their key.
 - **Derived tables** are non-authoritative and rebuildable; `I18nStatsRebuilder::fullRebuild()` is the canonical recovery from drift.
 - **Time:** the Package never changes the global timezone; the translation repository takes its clock from the shared `ClockInterface`; the Host owns timezone policy.
+
+### 8.1 Optional Translation Key Preview
+
+[The additive schema](schema/translation-key-preview.sql) installs `maa_i18n_translation_key_previews` independently of the seven core tables. It is safe to apply on an existing installation. It has no dependency on Host tables or translation records. Install it separately wherever the preview API is used.
+
+| API | Contract |
+|---|---|
+| `ValueObject\PreviewTarget(scope, domain, key?)` | A null key selects the entire domain. A supplied key selects one exact identity. Components follow the core storage size limits and use case-sensitive, byte-exact matching over render inputs. Targets can include keys with no translation row. |
+| `TranslationKeyPreviewService::activate(targets, expiresAt)` | Persists a non-empty list of targets in one insert and returns a snapshot with a new ID. Targets combine with OR. The deadline must be in the future and is stored in UTC with microsecond precision. |
+| `getActive(id)` | Returns a request snapshot or null for missing, deactivated, or expired IDs. The deadline is exclusive. |
+| `deactivate(id)` | Deletes the stored row and reports whether it existed. |
+| `purgeExpired()` | Deletes expired rows and returns the count. Expiry takes effect on read even without cleanup. |
+| `DTO\TranslationKeyPreviewDTO::matches(scope, domain, key)` | Reports whether the render identity matches any selected target. |
+| `TranslationKeyPreviewDTO::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
+| `TranslationKeyPreviewDTO::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
+
+Preview reads and writes use the supplied PDO and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
 
 ## 9. Consumer Workflow
 

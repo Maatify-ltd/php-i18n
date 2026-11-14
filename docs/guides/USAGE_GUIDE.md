@@ -37,6 +37,7 @@ If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maati
 | create keys, write values | `TranslationWriteService` |
 | build an admin screen | `I18nManagementReadService` |
 | show coverage numbers | `I18nOperationalReadService` |
+| preview translation keys | `TranslationKeyPreviewService` with the optional schema |
 | rename a language code | `TranslationWriteService::rekeyLanguageCode()` |
 
 ## 2. Capability Map
@@ -50,6 +51,7 @@ If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maati
 | Management reads and pagination | [7](#7-management-reads) | [04](../../examples/04-management-reads-and-operational-facts.php) |
 | Operational facts and derived-state repair | [8](#8-operational-facts-and-derived-state-repair) | [04](../../examples/04-management-reads-and-operational-facts.php) |
 | Transactions and language-code re-key | [9](#9-transactions-and-language-code-changes) | [05](../../examples/05-language-code-rekey-and-transactions.php) |
+| Translation key preview | [12](#12-translation-key-preview) | [07](../../examples/07-translation-key-preview.php) |
 | Optional PHP-DI integration | [10](#10-optional-php-di-integration) | [06](../../examples/06-optional-php-di.php) |
 
 The examples run against a disposable MySQL (`composer check:examples`) and are smoke-executed in CI, so they are kept true.
@@ -226,6 +228,39 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 | counts look wrong after a manual database edit | run `I18nStatsRebuilder::fullRebuild()` |
 | `LogicException` about a locking read | a repository locking read needs an active transaction; use the services, which open one |
 
-## 12. Where Next
+## 12. Translation Key Preview
+
+Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Wire `TranslationKeyPreviewService` with your I18n PDO and clock. The same PDO lets Host-owned transactions include preview writes.
+
+```php
+use Maatify\I18n\ValueObject\PreviewTarget;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
+
+$previews = new TranslationKeyPreviewService($pdo, $clock);
+
+// In the authorized management action:
+$created = $previews->activate([
+    new PreviewTarget('web', 'checkout'),
+    new PreviewTarget('web', 'account', 'profile.save'),
+], $clock->now()->modify('+10 minutes'));
+
+// At the start of a request, after the Host authorizes the selected preview:
+$preview = $authorizedPreviewId === null ? null : $previews->getActive($authorizedPreviewId);
+
+// When rendering an individual key (including a translation miss):
+$text = $preview?->labelFor($scope, $domain, $key) ?? $normalText;
+
+// When serializing already cached translation values for JavaScript:
+$frontendMessages = $preview?->applyToDomain($scope, $domain, $cachedDomainMessages)
+    ?? $cachedDomainMessages;
+```
+
+Match against the structured scope, domain, and key supplied by the renderer. For a frontend that uses a flat message map, apply the preview to each domain map before flattening, in the same merge order as normal rendering. The map operation preserves existing entries. For known keys with no translation, use `labelFor()` with the structured key and export the resulting label if selected. Escape labels using the same output rules as translated values.
+
+The Host controls who can activate a preview, who can see it, and how an authorized request selects a preview ID. An ID is not a credential. The Host can select one preview per authorized session or select one for the whole site, for example on a staging environment. For preview requests, bypass cache reads and writes at both the shared page cache and CDN. Reads must be bypassed before a cache can serve a normal page, and writes must be bypassed so preview output stays private. Keep the cached translation values intact.
+
+Call `deactivate($id)` to stop a preview. Resolve `getActive($id)` again on the next request so deactivation and expiry take effect. If the Host needs to reclaim storage, call `purgeExpired()` periodically.
+
+## 13. Where Next
 
 [I18N_PACKAGE_REFERENCE.md](../../I18N_PACKAGE_REFERENCE.md) for every contract, [examples/](../../examples/) for runnable code, [BOOK/INDEX.md](../../BOOK/INDEX.md) for the concepts behind the design, and [README.md](../../README.md) for installation state and verification commands.

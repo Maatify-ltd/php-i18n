@@ -43,7 +43,9 @@ exact, nullable, Host-owned `language_code` (see the [Package Reference](I18N_PA
 *   **Columns:** `id` (PK), `key_id` (unique FK -> maa_i18n_keys: exactly one stats row per key), `translated_count`, `updated_at`.
 
 ### Schema authority
-`schema/schema.i18n.sql` is the fresh-install schema authority: seven tables, an `id` primary key on each, meaningful column comments, and documented policies, including nullable translation `type` metadata. A Host deployment copy is a projection, never a second design source.
+`schema/schema.i18n.sql` is the fresh-install schema authority for the seven core tables, an `id` primary key on each, meaningful column comments, and documented policies, including nullable translation `type` metadata. A Host deployment copy is a projection, never a second design source.
+
+The optional [preview schema](schema/translation-key-preview.sql) adds `maa_i18n_translation_key_previews` on a fresh or existing installation. The table stores selectors and an expiry independently of the core translation tables.
 
 ## 1.1 Source topology
 
@@ -64,8 +66,12 @@ exact, nullable, Host-owned `language_code` (see the [Package Reference](I18N_PA
 *   `I18nOperationalReadService`: package-owned counts and coverage facts (key totals, exact-code translated counts, per-scope / per-domain coverage, derived-row count) so the Host never reconstructs I18n semantics by SQL.
 *   Inputs with several fields are `Command`s (self-validating, `final readonly`); list / search inputs are `Criteria`.
 
+- `TranslationKeyPreviewService` manages preview state through the optional MySQL repository. Consumers apply the returned snapshot at presentation time after reading cached translations. See the [preview contract](I18N_PACKAGE_REFERENCE.md#81-optional-translation-key-preview).
+
 ### Transactions, concurrency, storage failures
-*   **Transaction owner:** the I18n service, through `maatify/php-persistence` `TransactionRunnerInterface` (`PdoTransactionRunner`): no outer TX -> the runner owns begin / commit / rollback; active outer TX -> participate only, never commit or roll back the caller's, original `Throwable` preserved. Atomic composition requires the same PDO connection.
+*   **Runner-backed operations:** translation writes, scope and domain mutations other than moves, assignments, and full stats rebuilds use `maatify/php-persistence` `TransactionRunnerInterface` (`PdoTransactionRunner`): no outer TX -> the runner owns begin / commit / rollback; active outer TX -> participate only, never commit or roll back the caller's, original `Throwable` preserved. Atomic composition requires the same PDO connection.
+- **Scope and domain moves:** `MysqlGovernanceTableSupport` wraps the reorder and follow-up locking read in `PdoTransactionRunner`. `ScopedOrderingManager` performs the reorder.
+- **Preview operations:** the repository uses the Host-supplied PDO directly and joins an open transaction on that connection. The Host controls begin, commit, and rollback.
 *   **Ordering concurrency:** creates take the caller-owned ordering lock (same index order as persistence' move lock). An EMPTY ordering has no row to lock: concurrent first creates may make InnoDB choose a deadlock victim (SQLSTATE 40001, propagated unchanged).
 *   **Failure contract:** a genuine "no row" is `null` / empty / `false`. A thrown `PDOException` propagates unchanged; a non-throwing PDO failure state (`prepare` / `execute` / `fetch` failing under a non-exception error mode) becomes `I18nStorageException`. Neither can masquerade as a miss, an empty list or a policy denial. `PDO::ERRMODE_EXCEPTION` is the supported mode.
 *   Every package exception implements `Maatify\I18n\Exception\I18nExceptionInterface`; external `PDOException`s are not forced to.
@@ -113,3 +119,5 @@ The package utilizes a **Strong Consistency** model.
 ## 5. Host Responsibilities
 
 The Host owns: the language registry, ID -> code resolution, locale selection, fallback, semantic validation of codes, and composition of language names/icons/active flags with I18n exact-scope counts. When a Host renames a language code it must call `TranslationWriteService::rekeyLanguageCode()` in the same transaction as its own rename; I18n never edits Host language data.
+
+For optional previews, the Host authorizes management operations and selects which requests can use a preview. It bypasses reads and writes in shared page and CDN caches for preview requests.
