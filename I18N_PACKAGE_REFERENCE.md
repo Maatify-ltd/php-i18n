@@ -350,14 +350,14 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ## 7. Transactions and Concurrency
 
-- **Transaction runner:** translation writes, scope and domain mutations other than `moveToPosition()`, scope–domain assignment mutations, and `I18nStatsRebuilder::fullRebuild()` run through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
+- **Transaction runner at the service layer:** translation writes, scope and domain mutations other than `moveToPosition()`, scope–domain assignment mutations, and `I18nStatsRebuilder::fullRebuild()` run through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
 - **Runner-backed operations without an outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
 - **Outer transaction supported:** when the connection already has an active transaction, I18n participates and never commits or rolls back the caller's transaction; the original `Throwable` is preserved. Atomic composition with Host data requires the **same `PDO` connection**.
 - **Translation key preview:** `Preview\TranslationKeyPreviewService` executes directly on the Host-supplied `PDO`. Its statements participate in any transaction already open on that connection. The Host retains responsibility for starting, committing, and rolling back its transaction. See [section 8.1](#81-optional-translation-key-preview).
 - **Derived layers** are written in the same transaction as the authoritative change.
 - **Locks:** a mutation that creates usage of a scope or domain (create key, move key, assign) takes SHARE locks on the governance rows in the fixed order scope, domain, mapping. A code change takes the UPDATE lock on its row and checks usage with locking reads before changing the code. "Unused, then usage created, then code changed" therefore cannot orphan a key. Repository locking reads require an active transaction.
 - **Ordering:** creates take a caller-owned ordering lock before allocating the next position. An empty ordering has no row to lock, so concurrent first creates may make InnoDB pick a deadlock victim (SQLSTATE 40001), which propagates unchanged; the Host may retry.
-- **`moveToPosition()`** for scopes and domains delegates transaction handling to the `maatify/php-persistence` ordering component.
+- **`moveToPosition()`** for scopes and domains uses `PdoTransactionRunner` inside `MysqlGovernanceTableSupport`. The runner wraps the reorder performed by `ScopedOrderingManager` and the follow-up locking read when the reorder reports failure.
 - **Reads** do not open transactions and take no locks.
 
 ## 8. Persistence and Schema
