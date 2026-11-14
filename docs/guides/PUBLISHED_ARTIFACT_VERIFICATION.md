@@ -64,7 +64,9 @@ Inspect the installed README, CHANGELOG, SECURITY policy, and consumer navigatio
 
 ## Recorded result for v1.0.0-rc.2
 
-The [verification record on PR #20](https://github.com/Maatify-ltd/php-i18n/pull/20#issuecomment-6882765826) confirms exact Packagist dist installation with the new Persistence RC, a match to the tagged archive, and correct release presentation. It also records the runtime check that was not run.
+The [verification record on PR #20](https://github.com/Maatify-ltd/php-i18n/pull/20#issuecomment-6882765826) confirms exact Packagist dist installation with the new Persistence RC, a match to the tagged archive, and correct release presentation.
+
+The Consumer Verification Harness passed **65/65 checks** on MySQL Community Server **8.4.9** with both PHP **8.4.27** and **8.5.12**. Each clean Composer project installed `maatify/php-i18n v1.0.0-rc.2` and `maatify/php-persistence v1.0.0-rc.1` through Packagist dist with `minimum-stability: stable` and no PHP platform override. Both runs produced identical output. See the [MySQL verification record on PR #20](https://github.com/Maatify-ltd/php-i18n/pull/20#issuecomment-6883293863).
 
 ## Recorded result for v1.0.0-rc.1
 
