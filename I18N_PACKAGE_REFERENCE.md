@@ -5,7 +5,7 @@ The canonical reference for the stable public, runtime and behavioral contract o
 - **Where to start:** [README.md](README.md) (overview, installation, quick usage) and [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) (integration walkthroughs).
 - **What this file does not own:** Composer facts (package identity, PHP and extension requirements, dependencies, autoload, scripts) are owned by [composer.json](composer.json). They are summarized here only where they explain runtime behavior.
 
-The API below describes the current checkout. The published RC has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
+The API below describes the `1.0.0-rc.2` artifact. The published RC has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
 
 ## 1. Package Facts
 
@@ -13,9 +13,9 @@ The API below describes the current checkout. The published RC has its own [Pack
 |---|---|
 | Composer identity | `maatify/php-i18n` |
 | Root namespace | `Maatify\I18n\` (PSR-4, `src/`) |
-| Distribution state | Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
+| Distribution state at qualification | Target `1.0.0-rc.2` unpublished. Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
-| Checkout PHP | See the exact constraints in [composer.json](composer.json). |
+| PHP | See the exact constraints in [composer.json](composer.json). |
 | Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
 | Shared mechanics | Transactions, display ordering and pagination come from `maatify/php-persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
 | Optional integration | PHP-DI adapter `Maatify\I18n\Adapter\PhpDi\I18nBindings`; `php-di/php-di` and `psr/container` are Composer `suggest` entries, never runtime requirements |

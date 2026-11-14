@@ -2,15 +2,15 @@
 
 How to integrate `maatify/php-i18n` into an application. This guide presents the contract; it does not define one. The canonical contract and the complete Public Runtime API inventory live in [I18N_PACKAGE_REFERENCE.md](../../I18N_PACKAGE_REFERENCE.md).
 
-> **State:** Published Release Candidate `1.0.0-rc.1`, distributed through [Packagist](https://packagist.org/packages/maatify/php-i18n). No Published Stable release or Stable support line exists. Composer requirements and dependencies are in [composer.json](../../composer.json).
+> Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists.
 
-Install the exact published RC in a consumer project:
+The examples below apply to the target artifact. See [requirements](../../composer.json) and use this exact command after Packagist publishes the target. The dependency allowance keeps the consumer's `minimum-stability: stable`.
 
 ```bash
-composer require maatify/php-i18n:1.0.0-rc.1@RC
+composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC
 ```
 
-If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md) for its requirements and examples. The rest of this guide and its examples apply to the current repository checkout.
+For `1.0.0-rc.1`, use its [release-specific guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
 
 ## 1. Fit, Requirements and Boundaries
 

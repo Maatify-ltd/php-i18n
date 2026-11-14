@@ -8,10 +8,17 @@ The `1.0.0-rc.1` Release Candidate was published on 2026-10-03 through Packagist
 
 ## [Unreleased]
 
+## [1.0.0-rc.2]
+
+### Added
+
+- Optional translation key previews with domain and exact-key selectors, expiry, and Host-controlled authorization and transactions.
+
 ### Changed
 
-- Migrate ordering, pagination and transactions to the exact `maatify/php-persistence:1.0.0-rc.1` trial. Checkout consumers must allow that RC in their root Composer manifest and update public Pagination and Transaction imports to the new namespace.
+- Migrate ordering, pagination and transactions to the exact `maatify/php-persistence:1.0.0-rc.1` trial. Consumers of this RC must allow that RC in their root Composer manifest and update public Pagination and Transaction imports to the new namespace.
 - Update GitHub organization links and clarify free proprietary licensing.
+- Identify the release artifact separately from the publication state at qualification.
 
 ## [1.0.0-rc.1] - 2026-10-03
 

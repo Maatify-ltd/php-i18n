@@ -30,9 +30,7 @@
 
 `maatify/php-i18n` is a governed, database-driven translation layer for PHP: structured keys, exact-scope translation values in MySQL, fail-soft runtime reads, management reads for admin screens, and operational coverage facts. Language identity stays with the Host: I18n stores an exact, nullable language code and never applies a fallback.
 
-Published Release Candidate: `1.0.0-rc.1`, distributed through [Packagist](https://packagist.org/packages/maatify/php-i18n). No Published Stable release or Stable support line exists. See [Installation](#installation) for the exact consumer command.
-
-Release Target: `1.0.0-rc.1` · Publication State: Published pre-release · Lifecycle Status: Release Candidate.
+Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists. The version and install badges above reflect the published release at qualification. See [Installation](#installation).
 
 </div>
 
@@ -54,23 +52,29 @@ Release Target: `1.0.0-rc.1` · Publication State: Published pre-release · Life
 
 | Requirement | Constraint |
 |---|---|
-| PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` (development checkout) |
+| PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` |
 | Extensions | `ext-mbstring`, `ext-pdo`, `ext-pdo_mysql` |
 | `maatify/exceptions` | `^1.1` |
-| `maatify/php-persistence` | `1.0.0-rc.1` (development checkout) |
+| `maatify/php-persistence` | `1.0.0-rc.1` |
 | `maatify/shared-common` | `^1.0` |
 | Database | MySQL (InnoDB, `utf8mb4`); MySQL 8.4 is the version exercised by the package verification |
 | Optional | `php-di/php-di` and `psr/container` only for the optional PHP-DI adapter (`suggest`) |
 
 ## Installation
 
-The table describes the current checkout. The published I18n RC keeps the requirements and API documented in its own release. Install it from Packagist:
+The requirements above apply to the `1.0.0-rc.2` artifact. The exact target command resolves through Packagist after that version is published. Run it in the consumer project. Both RC allowances are explicit so Composer can retain `minimum-stability: stable`.
+
+```bash
+composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC
+```
+
+For the Published Release Candidate at qualification, use the exact `rc.1` command and follow its [release-specific usage guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
 
 ```bash
 composer require maatify/php-i18n:1.0.0-rc.1@RC
 ```
 
-Then create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
+For `1.0.0-rc.2`, create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
 
 ## Quick Usage
 
@@ -110,7 +114,7 @@ An overview only. The complete inventory (signatures, DTO fields, exceptions, so
 | Runtime reads (fail-soft) | `TranslationReadService` (`getValue()`, `getTranslation()`), `TranslationDomainReadService` (`getDomainValues()`, `getDomainTranslations()`), value-only and typed consumer DTOs |
 | Translation writes | `TranslationWriteService` (keys, translations, language-code re-key) |
 | Governance management | `I18nScopeManagementService`, `I18nDomainManagementService`, `I18nScopeDomainManagementService` |
-| Optional key preview (checkout) | `TranslationKeyPreviewService` and the [optional preview schema](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) |
+| Optional key preview | `TranslationKeyPreviewService` and the [optional preview schema](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) |
 | Management reads | `I18nManagementReadService`, `I18nScopeReadService`, `I18nDomainReadService` with `*Criteria` inputs and paginated results |
 | Operational reads | `I18nOperationalReadService` (exact-code counts and coverage) |
 | Policy and maintenance | `I18nGovernancePolicyService`, `MissingCounterService`, `I18nStatsRebuilder` |
@@ -154,7 +158,7 @@ Maintained examples cover every material capability and run against a disposable
 | [I18N_PACKAGE_REFERENCE.md](I18N_PACKAGE_REFERENCE.md) | the canonical public, runtime and behavioral contract |
 | [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) | integration walkthroughs |
 | [examples/](examples/) | maintained, executable examples |
-| [CHANGELOG.md](CHANGELOG.md) | published `1.0.0-rc.1` Release Candidate and its actual release date |
+| [CHANGELOG.md](CHANGELOG.md) | exact release targets and recorded publication dates |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | component boundaries |
 | [BOOK/INDEX.md](BOOK/INDEX.md) | conceptual, deep documentation; never overrides the Reference |
 | [llms.txt](llms.txt) | navigation for AI consumers |
@@ -172,7 +176,7 @@ Maintained examples cover every material capability and run against a disposable
 | Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; [published RC dist and presentation results](docs/guides/PUBLISHED_ARTIFACT_VERIFICATION.md) is recorded separately |
 | Examples | every example smoke-executed |
 | Composer audit and platform requirements | enforced |
-| Release | Published Release Candidate `1.0.0-rc.1`; no Published Stable release or Stable support line. See [CHANGELOG.md](CHANGELOG.md) |
+| Release | Artifact target `1.0.0-rc.2`. See [CHANGELOG.md](CHANGELOG.md) |
 
 ## Development and Testing
 

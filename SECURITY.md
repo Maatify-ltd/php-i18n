@@ -5,7 +5,7 @@
 
 ## Current Support State
 
-`1.0.0-rc.1` is a Published Release Candidate and a pre-release distributed through Packagist. There is no Published Stable release and no Stable support line. Publishing this RC does not establish Stable support.
+Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists. Release Candidates do not establish Stable support.
 
 ## Reporting a Vulnerability
 
