@@ -50,7 +50,7 @@ final readonly class I18nDomainManagementService
     {
         return $this->tx->run(function () use ($command): int {
             // Serialize concurrent position allocation (caller-owned lock for
-            // ScopedOrderingManager::getNextPosition()).
+            // ScopedOrderingManager::getNextPositionForUpdate()).
             $this->repository->lockOrderingScope();
 
             return $this->repository->create($command, $this->repository->nextPosition());

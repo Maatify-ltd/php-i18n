@@ -340,7 +340,7 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ### 6.3 Storage failure contract
 
-`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. Neither can masquerade as a miss, an empty list or a governance denial.
+`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. A failed ordering move also raises `I18nStorageException` when the target row still exists. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
 
 ## 7. Transactions and Concurrency
 

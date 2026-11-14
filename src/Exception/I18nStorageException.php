@@ -8,10 +8,9 @@ use Maatify\Exceptions\Contracts\ErrorCodeInterface;
 use Maatify\I18n\Enum\I18nErrorCodeEnum;
 
 /**
- * A non-throwing PDO failure state (prepare/execute/fetch returned a failure
- * value instead of throwing). It is NEVER a domain miss: callers must not
- * treat it as "not found", "empty" or a policy denial. Thrown PDOExceptions
- * are not wrapped; they propagate unchanged.
+ * A non-throwing PDO failure during prepare, execute or fetch, or a failed
+ * ordering move whose target row still exists. Callers must propagate this
+ * storage error. Thrown PDOExceptions propagate unchanged.
  */
 final class I18nStorageException extends I18nSystemException
 {
