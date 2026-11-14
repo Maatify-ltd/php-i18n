@@ -62,6 +62,10 @@ printf 'Installed package and verification evidence: %s\n' "$work"
 
 Inspect the installed README, CHANGELOG, SECURITY policy, and consumer navigation for the exact release identity, installation instructions, and time scope of publication claims. Record the presentation result alongside the installation and content comparison. Both must pass for Published Artifact Verification to pass. The Consumer Verification Harness covers runtime behavior separately.
 
+## Recorded result for v1.0.0-rc.2
+
+The [verification record on PR #20](https://github.com/Maatify-ltd/php-i18n/pull/20#issuecomment-6882765826) confirms exact Packagist dist installation with the new Persistence RC, a match to the tagged archive, and correct release presentation. It also records the runtime check that was not run.
+
 ## Recorded result for v1.0.0-rc.1
 
 - **Installation and identity — PASS.** On 2026-11-14, Composer 2.10.2 resolved the exact version through Packagist in a clean project with an isolated home and cache. The effective CLI preference was `--prefer-install=dist` and installed metadata confirmed `installation-source=dist` at `vendor/maatify/php-i18n`.
