@@ -2,12 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Maatify\I18n\Preview;
+namespace Maatify\I18n\DTO;
 
 use DateTimeImmutable;
+use JsonSerializable;
+use Maatify\I18n\ValueObject\PreviewTarget;
 
 /** An immutable preview snapshot to use within a single authorized request. */
-final readonly class TranslationKeyPreview
+final readonly class TranslationKeyPreviewDTO implements JsonSerializable
 {
     /** @var array<string, array<string, array<string, true>|true>> */
     private array $selection;
@@ -67,5 +69,22 @@ final readonly class TranslationKeyPreview
         }
 
         return $messages;
+    }
+
+    /** @return array{id: int, expires_at: string, targets: list<array{scope: string, domain: string, key: ?string}>} */
+    public function jsonSerialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'expires_at' => $this->expiresAt->format('Y-m-d\TH:i:s.uP'),
+            'targets' => array_map(
+                static fn(PreviewTarget $target): array => [
+                    'scope' => $target->scope,
+                    'domain' => $target->domain,
+                    'key' => $target->key,
+                ],
+                $this->targets,
+            ),
+        ];
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Maatify\I18n\Preview;
+namespace Maatify\I18n\ValueObject;
 
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 

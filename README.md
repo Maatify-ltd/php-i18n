@@ -2,7 +2,11 @@
 
 # Maatify I18n
 
-![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://www.maatify.dev/company-profile/maatify_logo_white.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+  <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+</picture>
 
 [![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](CHANGELOG.md)
 [![Version](https://img.shields.io/badge/Version-1.0.0--rc.1-blue)](https://packagist.org/packages/maatify/php-i18n)
@@ -40,7 +44,7 @@ Release Target: `1.0.0-rc.1` · Publication State: Published pre-release · Life
 - **Exact language scopes:** reads and writes address one exact `language_code` (or `NULL`, the unlocalized scope). No fallback, default or wildcard inside I18n; fallback is Host policy.
 - **Fail-soft reads, fail-hard writes:** a runtime miss returns `null` or an empty DTO; a write violating governance throws a typed exception.
 - **Synchronous derived state:** per-domain, per-language summary and per-key counters are updated in the same transaction and are rebuildable.
-- **Package-owned persistence:** seven `maa_i18n_*` tables; no foreign key to, and no join with, any Host table.
+- **Package-owned persistence:** seven core `maa_i18n_*` tables; no foreign key to, and no join with, any Host table.
 - **Shared transaction semantics:** transactions, ordering and pagination come from `maatify/php-persistence`; an outer transaction on the same connection is joined, never committed or rolled back by I18n.
 - **Container-free Core:** plain constructor wiring; an optional PHP-DI adapter is available but never required.
 
@@ -106,6 +110,7 @@ An overview only. The complete inventory (signatures, DTO fields, exceptions, so
 | Runtime reads (fail-soft) | `TranslationReadService` (`getValue()`, `getTranslation()`), `TranslationDomainReadService` (`getDomainValues()`, `getDomainTranslations()`), value-only and typed consumer DTOs |
 | Translation writes | `TranslationWriteService` (keys, translations, language-code re-key) |
 | Governance management | `I18nScopeManagementService`, `I18nDomainManagementService`, `I18nScopeDomainManagementService` |
+| Optional key preview (checkout) | `TranslationKeyPreviewService` and the [optional preview schema](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) |
 | Management reads | `I18nManagementReadService`, `I18nScopeReadService`, `I18nDomainReadService` with `*Criteria` inputs and paginated results |
 | Operational reads | `I18nOperationalReadService` (exact-code counts and coverage) |
 | Policy and maintenance | `I18nGovernancePolicyService`, `MissingCounterService`, `I18nStatsRebuilder` |
@@ -136,7 +141,7 @@ Every exception defined by the package implements `Maatify\I18n\Exception\I18nEx
 
 ## Examples
 
-Six maintained examples cover every material capability and run against a disposable MySQL in CI. See the capability map in the [Usage Guide](docs/guides/USAGE_GUIDE.md#2-capability-map) and the [examples/](examples/) directory.
+Maintained examples cover every material capability and run against a disposable MySQL in CI. See the capability map in the [Usage Guide](docs/guides/USAGE_GUIDE.md#2-capability-map) and the [examples/](examples/) directory.
 
 ## Schema
 
@@ -164,7 +169,7 @@ Six maintained examples cover every material capability and run against a dispos
 | PHPStan level `max` (src, tests, examples, consumer harness) | enforced, zero errors, no baseline, no suppressions |
 | Unit suite (no Docker) and real-MySQL Integration suite | enforced on PHP 8.4 and 8.5 |
 | Dependency compatibility | latest-compatible and lowest-supported resolutions both verified |
-| Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; published-RC Harness verification is the next separate step |
+| Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; [published RC dist verification](docs/guides/PUBLISHED_ARTIFACT_VERIFICATION.md) is recorded separately |
 | Examples | every example smoke-executed |
 | Composer audit and platform requirements | enforced |
 | Release | Published Release Candidate `1.0.0-rc.1`; no Published Stable release or Stable support line. See [CHANGELOG.md](CHANGELOG.md) |

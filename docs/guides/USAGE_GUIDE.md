@@ -37,6 +37,7 @@ If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maati
 | create keys, write values | `TranslationWriteService` |
 | build an admin screen | `I18nManagementReadService` |
 | show coverage numbers | `I18nOperationalReadService` |
+| preview translation keys | `TranslationKeyPreviewService` with the optional schema |
 | rename a language code | `TranslationWriteService::rekeyLanguageCode()` |
 
 ## 2. Capability Map
@@ -50,6 +51,7 @@ If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maati
 | Management reads and pagination | [7](#7-management-reads) | [04](../../examples/04-management-reads-and-operational-facts.php) |
 | Operational facts and derived-state repair | [8](#8-operational-facts-and-derived-state-repair) | [04](../../examples/04-management-reads-and-operational-facts.php) |
 | Transactions and language-code re-key | [9](#9-transactions-and-language-code-changes) | [05](../../examples/05-language-code-rekey-and-transactions.php) |
+| Translation key preview | [12](#12-translation-key-preview) | [07](../../examples/07-translation-key-preview.php) |
 | Optional PHP-DI integration | [10](#10-optional-php-di-integration) | [06](../../examples/06-optional-php-di.php) |
 
 The examples run against a disposable MySQL (`composer check:examples`) and are smoke-executed in CI, so they are kept true.
@@ -231,8 +233,8 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Wire `TranslationKeyPreviewService` with your I18n PDO and clock. The same PDO lets Host-owned transactions include preview writes.
 
 ```php
-use Maatify\I18n\Preview\PreviewTarget;
-use Maatify\I18n\Preview\TranslationKeyPreviewService;
+use Maatify\I18n\ValueObject\PreviewTarget;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 
 $previews = new TranslationKeyPreviewService($pdo, $clock);
 

@@ -41,12 +41,12 @@ It deliberately does **not**:
 | Directory | Responsibility |
 |---|---|
 | `Consumer/` | Runtime exact reads (`Service/`) and their result DTO (`DTO/`) |
-| `Management/` | `Command/` (write intents), `Criteria/` (list/search inputs), `Service/` (management writes, management reads, operational reads, stats rebuild, translation writes) |
+| `Management/` | `Command/` (write intents), `Criteria/` (list/search inputs), `Service/` (management writes, management reads, operational reads, stats rebuild, translation writes, optional preview management) |
 | `Service/` | Package-wide governance policy and derived-state maintenance |
 | `Repository/` | Persistence contracts; `Repository/Mysql/` holds their PDO/MySQL implementations |
 | `Adapter/PhpDi/` | The optional PHP-DI wiring |
 | `DTO/` | Result DTOs (`final readonly`, `JsonSerializable`) |
-| `Enum/`, `Exception/`, `ValueObject/` | Enums, exceptions, the `LanguageCode` and `TranslationType` value objects |
+| `Enum/`, `Exception/`, `ValueObject/` | Enums, exceptions, the `LanguageCode`, `TranslationType`, and `PreviewTarget` value objects |
 
 ### 3.1 What the Package owns and enforces
 
@@ -160,7 +160,8 @@ Read-only. A requested identity that does not exist is an exception; a list over
 
 | Method | Result | Throws |
 |---|---|---|
-| `getScope(int $id)`, `getScopeByCode(string $code)` | `ScopeDTO` | `I18nInvalidArgumentException` for a non-positive id; `ScopeNotFoundException` |
+| `getScope(int $id)`, `getScopeByCode(string $code)` | `TranslationKeyPreviewDTO` | `id`, `expiresAt`, `targets`. JSON uses `expires_at` as an ISO 8601 timestamp with microseconds and targets with `scope`, `domain`, and nullable `key`. |
+| `ScopeDTO` | `I18nInvalidArgumentException` for a non-positive id; `ScopeNotFoundException` |
 | `searchScopes(ScopeListCriteria)` | `PageResultDTO<ScopeDTO>` | |
 | `getDomain(int $id)` | `DomainDTO` | `I18nInvalidArgumentException` for a non-positive id; `DomainNotFoundException` |
 | `searchDomains(DomainListCriteria)` | `PageResultDTO<DomainDTO>` | |
@@ -297,11 +298,11 @@ Domain-specific operations retain their distinct contracts: `changeCode` and key
 
 ### 5.12 Not public API
 
-Not supported as consumer contract, even though visible: `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
+Not supported as consumer contract, even though visible: `Repository\Mysql\MysqlTranslationKeyPreviewRepository`, `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
 
 ### 5.13 Management — Translation Key Preview
 
-To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Preview\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
+To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Management\Service\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
 
 The Host authorizes these operations and controls which requests can use a preview. See [Optional Translation Key Preview](#81-optional-translation-key-preview) for the storage, expiry, and rendering contracts.
 
@@ -353,7 +354,7 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 - **Transaction runner at the service layer:** translation writes, scope and domain mutations other than `moveToPosition()`, scope–domain assignment mutations, and `I18nStatsRebuilder::fullRebuild()` run through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
 - **Runner-backed operations without an outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
 - **Outer transaction supported:** when the connection already has an active transaction, I18n participates and never commits or rolls back the caller's transaction; the original `Throwable` is preserved. Atomic composition with Host data requires the **same `PDO` connection**.
-- **Translation key preview:** `Preview\TranslationKeyPreviewService` executes directly on the Host-supplied `PDO`. Its statements participate in any transaction already open on that connection. The Host retains responsibility for starting, committing, and rolling back its transaction. See [section 8.1](#81-optional-translation-key-preview).
+- **Translation key preview:** `Management\Service\TranslationKeyPreviewService` executes directly on the Host-supplied `PDO`. Its statements participate in any transaction already open on that connection. The Host retains responsibility for starting, committing, and rolling back its transaction. See [section 8.1](#81-optional-translation-key-preview).
 - **Derived layers** are written in the same transaction as the authoritative change.
 - **Locks:** a mutation that creates usage of a scope or domain (create key, move key, assign) takes SHARE locks on the governance rows in the fixed order scope, domain, mapping. A code change takes the UPDATE lock on its row and checks usage with locking reads before changing the code. "Unused, then usage created, then code changed" therefore cannot orphan a key. Repository locking reads require an active transaction.
 - **Ordering:** creates take a caller-owned ordering lock before allocating the next position. An empty ordering has no row to lock, so concurrent first creates may make InnoDB pick a deadlock victim (SQLSTATE 40001), which propagates unchanged; the Host may retry.
@@ -378,14 +379,14 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 | API | Contract |
 |---|---|
-| `PreviewTarget(scope, domain, key?)` | A null key selects the entire domain. A supplied key selects one exact identity. Components follow the core storage size limits and use case-sensitive, byte-exact matching over render inputs. Targets can include keys with no translation row. |
+| `ValueObject\PreviewTarget(scope, domain, key?)` | A null key selects the entire domain. A supplied key selects one exact identity. Components follow the core storage size limits and use case-sensitive, byte-exact matching over render inputs. Targets can include keys with no translation row. |
 | `TranslationKeyPreviewService::activate(targets, expiresAt)` | Persists a non-empty list of targets in one insert and returns a snapshot with a new ID. Targets combine with OR. The deadline must be in the future and is stored in UTC with microsecond precision. |
 | `getActive(id)` | Returns a request snapshot or null for missing, deactivated, or expired IDs. The deadline is exclusive. |
 | `deactivate(id)` | Deletes the stored row and reports whether it existed. |
 | `purgeExpired()` | Deletes expired rows and returns the count. Expiry takes effect on read even without cleanup. |
-| `TranslationKeyPreview::matches(scope, domain, key)` | Reports whether the render identity matches any selected target. |
-| `TranslationKeyPreview::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
-| `TranslationKeyPreview::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
+| `DTO\TranslationKeyPreviewDTO::matches(scope, domain, key)` | Reports whether the render identity matches any selected target. |
+| `TranslationKeyPreviewDTO::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
+| `TranslationKeyPreviewDTO::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
 
 Preview reads and writes use the supplied PDO and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
 

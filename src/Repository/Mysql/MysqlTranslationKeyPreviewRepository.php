@@ -2,58 +2,37 @@
 
 declare(strict_types=1);
 
-namespace Maatify\I18n\Preview;
+namespace Maatify\I18n\Repository\Mysql;
 
 use DateTimeImmutable;
 use DateTimeZone;
 use JsonException;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\Exception\I18nStorageException;
-use Maatify\I18n\Repository\Mysql\PdoGateway;
-use Maatify\I18n\Repository\Mysql\Row;
-use Maatify\SharedCommon\Contracts\ClockInterface;
+use Maatify\I18n\DTO\TranslationKeyPreviewDTO;
+use Maatify\I18n\ValueObject\PreviewTarget;
 use PDO;
 
-/** Manages optional MySQL preview storage without owning the Host transaction. */
-final readonly class TranslationKeyPreviewService
+/** MySQL storage for optional preview snapshots. @internal */
+final readonly class MysqlTranslationKeyPreviewRepository
 {
     private const DATE_FORMAT = 'Y-m-d H:i:s.u';
 
     private PdoGateway $gateway;
     private DateTimeZone $utc;
 
-    public function __construct(PDO $pdo, private ClockInterface $clock)
+    public function __construct(PDO $pdo)
     {
         $this->gateway = new PdoGateway($pdo);
         $this->utc = new DateTimeZone('UTC');
     }
 
-    /**
-     * Persists a new preview. Expiry is exclusive and must be in the future.
-     *
-     * @param array<array-key, mixed> $targets A non-empty list of PreviewTarget objects.
-     */
-    public function activate(array $targets, DateTimeImmutable $expiresAt): TranslationKeyPreview
+    /** @param non-empty-list<PreviewTarget> $targets */
+    public function insert(array $targets, DateTimeImmutable $expiresAt): TranslationKeyPreviewDTO
     {
-        if ($targets === [] || !array_is_list($targets)) {
-            throw new I18nInvalidArgumentException('Preview targets must be a non-empty list.');
-        }
-
-        $expiresAt = $expiresAt->setTimezone($this->utc);
-
-        if ($expiresAt <= $this->clock->now() || !preg_match('/^[1-9][0-9]{3}$/D', $expiresAt->format('Y'))) {
-            throw new I18nInvalidArgumentException('Preview expiry must be a future date supported by MySQL.');
-        }
-
         $rows = [];
-        $selection = [];
 
         foreach ($targets as $target) {
-            if (!$target instanceof PreviewTarget) {
-                throw new I18nInvalidArgumentException('Each preview target must be a PreviewTarget.');
-            }
-
-            $selection[] = $target;
             $rows[] = [$target->scope, $target->domain, $target->key];
         }
 
@@ -63,19 +42,15 @@ final readonly class TranslationKeyPreviewService
             'preview.activate',
         );
 
-        return new TranslationKeyPreview($this->gateway->lastInsertId('preview.activate'), $expiresAt, $selection);
+        return new TranslationKeyPreviewDTO($this->gateway->lastInsertId('preview.activate'), $expiresAt, $targets);
     }
 
     /** Loads an active snapshot. Missing, stopped, and expired previews return null. */
-    public function getActive(int $id): ?TranslationKeyPreview
+    public function getActive(int $id, DateTimeImmutable $now): ?TranslationKeyPreviewDTO
     {
-        if ($id <= 0) {
-            throw I18nInvalidArgumentException::notPositive('previewId');
-        }
-
         $row = $this->gateway->fetchOne(
             'SELECT targets, expires_at FROM maa_i18n_translation_key_previews WHERE id = :id AND expires_at > :now',
-            ['id' => $id, 'now' => $this->currentTimestamp()],
+            ['id' => $id, 'now' => $now->setTimezone($this->utc)->format(self::DATE_FORMAT)],
             'preview.getActive',
         );
 
@@ -89,16 +64,12 @@ final readonly class TranslationKeyPreviewService
             throw new I18nStorageException('preview.hydrateExpiry');
         }
 
-        return new TranslationKeyPreview($id, $expiry, $this->decodeTargets(Row::string($row, 'targets')));
+        return new TranslationKeyPreviewDTO($id, $expiry, $this->decodeTargets(Row::string($row, 'targets')));
     }
 
     /** Removes a preview by ID, returning whether a stored row was removed. */
     public function deactivate(int $id): bool
     {
-        if ($id <= 0) {
-            throw I18nInvalidArgumentException::notPositive('previewId');
-        }
-
         return $this->gateway->write(
             'DELETE FROM maa_i18n_translation_key_previews WHERE id = :id',
             ['id' => $id],
@@ -107,18 +78,13 @@ final readonly class TranslationKeyPreviewService
     }
 
     /** Removes expired records and returns the number removed. Expiry needs no cleanup job. */
-    public function purgeExpired(): int
+    public function purgeExpired(DateTimeImmutable $now): int
     {
         return $this->gateway->write(
             'DELETE FROM maa_i18n_translation_key_previews WHERE expires_at <= :now',
-            ['now' => $this->currentTimestamp()],
+            ['now' => $now->setTimezone($this->utc)->format(self::DATE_FORMAT)],
             'preview.purgeExpired',
         );
-    }
-
-    private function currentTimestamp(): string
-    {
-        return $this->clock->now()->setTimezone($this->utc)->format(self::DATE_FORMAT);
     }
 
     /** @return non-empty-list<PreviewTarget> */

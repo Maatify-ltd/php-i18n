@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Maatify\I18n\Tests\Integration;
 
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
-use Maatify\I18n\Preview\PreviewTarget;
-use Maatify\I18n\Preview\TranslationKeyPreviewService;
+use Maatify\I18n\ValueObject\PreviewTarget;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
 use Maatify\I18n\Tests\Support\PreviewTestClock;
 

@@ -137,17 +137,17 @@ $security = (string) file_get_contents('SECURITY.md');
 $reference = (string) file_get_contents('I18N_PACKAGE_REFERENCE.md');
 $guide = (string) file_get_contents('docs/guides/USAGE_GUIDE.md');
 $readmeHeader = explode("\n---\n", $readme, 2)[0];
-$canonicalLogo = '![Maatify.dev](https://www.maatify.dev/assets/img/img/maatify_logo_white.svg)';
+$canonicalLogo = <<<'HTML'
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://www.maatify.dev/company-profile/maatify_logo_white.svg">
+  <source media="(prefers-color-scheme: light)" srcset="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+  <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
+</picture>
+HTML;
 
-if (substr_count($readmeHeader, $canonicalLogo) !== 1
-    || preg_match_all('/!\[Maatify\.dev\]\([^\n)]+\)/', $readmeHeader) !== 1) {
-    $errors[] = 'README.md: header must use exactly the canonical Maatify logo source';
-}
-if (str_contains($readmeHeader, 'https://github.com/Maatify.png')) {
-    $errors[] = 'README.md: previous GitHub avatar logo source is forbidden';
-}
-if (preg_match('/<img\b[^>]*(?:maatify|logo)[^>]*>/i', $readmeHeader) === 1) {
-    $errors[] = 'README.md: HTML logo or custom logo sizing is forbidden';
+$headerWithoutLogo = str_replace($canonicalLogo, '', $readmeHeader, $logoCount);
+if ($logoCount !== 1 || preg_match('/maatify_logo|github\.com\/Maatify\.png|<picture\b/i', $headerWithoutLogo) === 1) {
+    $errors[] = 'README.md: header must use one canonical color-scheme-aware Maatify logo';
 }
 foreach (explode("\n", $readmeHeader) as $line) {
     if (preg_match('/Maatify\.dev|maatify_logo|github\.com\/Maatify\.png/i', $line) === 1
