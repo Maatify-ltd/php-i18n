@@ -168,42 +168,47 @@ if (preg_match('/initial (?:package )?contents[^\n]*\[Unreleased\]/i', $changelo
     || str_contains($llms, '[Unreleased]')) {
     $errors[] = 'Release navigation: initial contents must not be described as Unreleased after allocation';
 }
-if (!str_ends_with(trim($changelog), '[1.0.0-rc.1]: https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1')) {
-    $errors[] = 'CHANGELOG.md: published RC release link must be at the bottom of the file';
+if (preg_match('#^\[1\.0\.0-rc\.1\]: https://github\.com/Maatify-ltd/php-i18n/releases/tag/v1\.0\.0-rc\.1$#m', $changelog) !== 1) {
+    $errors[] = 'CHANGELOG.md: published 1.0.0-rc.1 release link is missing';
 }
 
-$releaseTarget = '1.0.0-rc.2';
-$publishedRc = '1.0.0-rc.1';
-$targetBadgeVersion = str_replace('-', '--', $releaseTarget);
-$artifactIdentity = 'Release artifact target: `' . $releaseTarget . '` (Release Candidate).';
-$qualificationState = 'At qualification, `' . $releaseTarget . '` is unpublished and `'
-    . $publishedRc . '` is the Published Release Candidate on Packagist.';
+$publishedRc = '1.0.0-rc.2';
+$releaseDate = '2026-11-14';
+$badgeVersion = str_replace('-', '--', $publishedRc);
+$packagistRelease = 'https://packagist.org/packages/maatify/php-i18n#v' . $publishedRc;
+$githubRelease = 'https://github.com/Maatify-ltd/php-i18n/releases/tag/v' . $publishedRc;
+$publicationState = 'Published Release Candidate `' . $publishedRc . '` is available on [Packagist]('
+    . $packagistRelease . ').';
 
 foreach (['README.md' => $readme, 'SECURITY.md' => $security, 'llms.txt' => $llms,
     'I18N_PACKAGE_REFERENCE.md' => $reference, 'docs/guides/USAGE_GUIDE.md' => $guide] as $document => $text) {
-    $expectedIdentity = $document === 'I18N_PACKAGE_REFERENCE.md'
-        ? '| Distribution state at qualification | Target `' . $releaseTarget . '` unpublished.'
-        : $artifactIdentity . ' ' . $qualificationState;
-    if (!str_contains($text, $expectedIdentity)
+    if (!str_contains($text, $publicationState)
         || stripos($text, 'no Published Stable release') === false
         || !str_contains($text, 'Stable support line')
-        || preg_match('/' . preg_quote($releaseTarget, '/') . '`? (?:is )?published/i', $text) === 1) {
-        $errors[] = $document . ': exact artifact identity and qualification-time publication state are required';
+        || stripos($text, 'unpublished') !== false) {
+        $errors[] = $document . ': current published RC and Stable support status are required';
     }
 }
 if (!str_contains($llms, '[CHANGELOG.md](CHANGELOG.md)')) {
     $errors[] = 'llms.txt: release navigation is missing';
 }
 
-$install = 'composer require maatify/php-i18n:' . $releaseTarget . '@RC maatify/php-persistence:1.0.0-rc.1@RC';
+$install = 'composer require maatify/php-i18n:' . $publishedRc . '@RC maatify/php-persistence:1.0.0-rc.1@RC';
 foreach (['README.md' => $readme, 'docs/guides/USAGE_GUIDE.md' => $guide] as $document => $text) {
     if (!str_contains($text, $install)) {
-        $errors[] = $document . ': exact artifact install command with the Persistence RC allowance is missing';
+        $errors[] = $document . ': exact published RC install command with the Persistence RC allowance is missing';
     }
 }
 
-if (preg_match('/^## \[Unreleased\]\R\s*^## \[' . preg_quote($releaseTarget, '/') . '\]$/m', $changelog) !== 1) {
-    $errors[] = 'CHANGELOG.md: expected an undated release target after Unreleased';
+$publishedHeading = '## [' . $publishedRc . '] - ' . $releaseDate;
+if (preg_match('/^## \[Unreleased\]\R\s*^' . preg_quote($publishedHeading, '/') . '$/m', $changelog) !== 1
+    || !str_contains($changelog, '[' . $publishedRc . ']: ' . $githubRelease)
+    || !str_contains($changelog, $packagistRelease)) {
+    $errors[] = 'CHANGELOG.md: the current published RC requires its release date and distribution links';
+}
+if (!str_contains($readme, '[![Version](https://img.shields.io/badge/Version-' . $badgeVersion
+    . '-blue)](' . $githubRelease . ')')) {
+    $errors[] = 'README.md: Version badge must link to the current GitHub Pre-release';
 }
 
 $badgeRows = array_values(array_filter(
@@ -228,7 +233,7 @@ if (count($badgeRows) !== count($expectedBadgeRows)) {
 }
 $requiredBadges = [
     'Status-Release%20Candidate-blue',
-    'Version-' . $targetBadgeVersion . '-blue',
+    'Version-' . $badgeVersion . '-blue',
     'PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF',
     'License-Proprietary-green',
     'PHPStan-Level%20Max-4E8CAE',
@@ -236,7 +241,7 @@ $requiredBadges = [
     'packagist/dm/maatify/php-i18n',
     'packagist/dt/maatify/php-i18n',
     'Maatify-Ecosystem-blueviolet',
-    'Install-' . $targetBadgeVersion . '%40RC-blue',
+    'Install-' . $badgeVersion . '%40RC-blue',
 ];
 foreach ($requiredBadges as $badge) {
     if (!str_contains($readmeHeader, 'https://img.shields.io/' . $badge)
@@ -248,12 +253,6 @@ if (str_contains($readmeHeader, 'style=for-the-badge')
     || preg_match('#img\.shields\.io/packagist/(?:php|license)/#i', $readmeHeader) === 1) {
     $errors[] = 'README.md: non-default badge style or dynamic PHP/License badge is forbidden';
 }
-if (!str_contains($changelog, '2026-10-03')
-    || stripos($changelog, 'published') === false
-    || !str_contains($changelog, 'Packagist')) {
-    $errors[] = 'CHANGELOG.md: actual published RC state is missing';
-}
-
 /** Current package documentation and schema must retain the standalone artifact identity. */
 $currentArtifactIdentitySurfaces = array_merge(
     $currentStateDocuments,

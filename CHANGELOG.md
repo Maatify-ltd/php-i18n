@@ -4,11 +4,11 @@ This file records package contents by release target. The package's initial cont
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The `1.0.0-rc.1` Release Candidate was published on 2026-10-03 through Packagist. No Stable release or Stable support line exists.
+The current Published Release Candidate is [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2), published on 2026-11-14. No Stable release or Stable support line exists.
 
 ## [Unreleased]
 
-## [1.0.0-rc.2]
+## [1.0.0-rc.2] - 2026-11-14
 
 ### Added
 
@@ -37,4 +37,5 @@ The `1.0.0-rc.1` Release Candidate was published on 2026-10-03 through Packagist
 - Canonical Package Reference, Usage Guide, executable examples and AI-consumer navigation (`llms.txt`).
 - Package verification: Unit and real-MySQL Integration suites, a Consumer Verification Harness, example smoke execution, and a package CI workflow.
 
+[1.0.0-rc.2]: https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2
 [1.0.0-rc.1]: https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1
