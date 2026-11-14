@@ -7,7 +7,7 @@
  * @author      Mohamed Abdulalim (megyptm) <mohamed@maatify.dev>
  * @since       2026-10-01 00:00
  * @see         https://www.maatify.dev Maatify.dev
- * @link        https://github.com/Maatify/php-i18n view Project on GitHub
+ * @link        https://github.com/Maatify-ltd/php-i18n view Project on GitHub
  * @note        Distributed in the hope that it will be useful - WITHOUT WARRANTY.
  */
 
@@ -28,8 +28,8 @@ use Maatify\I18n\Management\Service\I18nScopeManagementService;
 use Maatify\I18n\Management\Service\I18nStatsRebuilder;
 use Maatify\I18n\Management\Service\TranslationWriteService;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 use PDO;
@@ -81,8 +81,8 @@ final class PhpDiOptionalIntegrationTest extends TestCase
             self::assertNotSame('', trim($suggest[$package]));
         }
 
-        self::assertArrayHasKey('maatify/persistence', $require);
-        self::assertSame('^1.4', $require['maatify/persistence']);
+        self::assertArrayHasKey('maatify/php-persistence', $require);
+        self::assertSame('>=1.0.0-rc.1 <=1.0.0-rc.1', $require['maatify/php-persistence']);
     }
 
     public function testCoreSourceNeverReferencesPhpDiOrPsrContainer(): void

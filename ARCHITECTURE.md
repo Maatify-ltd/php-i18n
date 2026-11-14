@@ -56,16 +56,16 @@ exact, nullable, Host-owned `language_code` (see the [Package Reference](I18N_PA
 *   **Responsibility:** Enforces that Scopes and Domains exist and are mapped before keys can be created. A mutation that creates usage takes the governance rows' SHARE locks first (`assertScopeAndDomainAllowedForUsage`).
 
 ### Management services (`Management/Service`)
-*   `I18nScopeManagementService`, `I18nDomainManagementService`: create (appended to the display order), metadata, active state, **code change**, ordering. A code change locks the governance row `FOR UPDATE`, checks usage with locking reads, then changes the code in one transaction; every usage-creating mutation takes the compatible SHARE locks (scope -> domain -> mapping), so "unused -> usage created -> code changed" can never orphan a reference. Ordering is `maatify/persistence` `ScopedOrderingManager`.
+*   `I18nScopeManagementService`, `I18nDomainManagementService`: create (appended to the display order), metadata, active state, **code change**, ordering. A code change locks the governance row `FOR UPDATE`, checks usage with locking reads, then changes the code in one transaction; every usage-creating mutation takes the compatible SHARE locks (scope -> domain -> mapping), so "unused -> usage created -> code changed" can never orphan a reference. Ordering is `maatify/php-persistence` `ScopedOrderingManager`.
 *   `I18nScopeDomainManagementService`: assign / unassign with deterministic lock order; the UNIQUE `(scope_code, domain_code)` is the duplicate authority.
 *   `TranslationWriteService`: key create / rename / description, atomic translation value/type upsert / delete, language-code re-key that preserves type. Type-only writes do not change derived completeness counts. Duplicate-key races end in `TranslationKeyAlreadyExistsException` (MySQL driver code 1062 only; any other failure propagates unchanged).
 *   `I18nScopeReadService`, `I18nDomainReadService`: fail-soft bounded governance lists (all / active scopes; domains assigned to a scope).
-*   `I18nManagementReadService`: details and **paginated** lists (`PageResult` of `maatify/persistence`; I18n owns only filters / search / mapping) of scopes, domains, assignments, keys, per-key translation summaries, translation grids, per-language values. Every language-facing input is an exact code supplied by the Host.
+*   `I18nManagementReadService`: details and **paginated** lists (`PageResultDTO` of `maatify/php-persistence`; I18n owns only filters / search / mapping) of scopes, domains, assignments, keys, per-key translation summaries, translation grids, per-language values. Every language-facing input is an exact code supplied by the Host.
 *   `I18nOperationalReadService`: package-owned counts and coverage facts (key totals, exact-code translated counts, per-scope / per-domain coverage, derived-row count) so the Host never reconstructs I18n semantics by SQL.
 *   Inputs with several fields are `Command`s (self-validating, `final readonly`); list / search inputs are `Criteria`.
 
 ### Transactions, concurrency, storage failures
-*   **Transaction owner:** the I18n service, through `maatify/persistence` `TransactionRunnerInterface` (`PdoTransactionRunner`): no outer TX -> the runner owns begin / commit / rollback; active outer TX -> participate only, never commit or roll back the caller's, original `Throwable` preserved. Atomic composition requires the same PDO connection.
+*   **Transaction owner:** the I18n service, through `maatify/php-persistence` `TransactionRunnerInterface` (`PdoTransactionRunner`): no outer TX -> the runner owns begin / commit / rollback; active outer TX -> participate only, never commit or roll back the caller's, original `Throwable` preserved. Atomic composition requires the same PDO connection.
 *   **Ordering concurrency:** creates take the caller-owned ordering lock (same index order as persistence' move lock). An EMPTY ordering has no row to lock: concurrent first creates may make InnoDB choose a deadlock victim (SQLSTATE 40001, propagated unchanged).
 *   **Failure contract:** a genuine "no row" is `null` / empty / `false`. A thrown `PDOException` propagates unchanged; a non-throwing PDO failure state (`prepare` / `execute` / `fetch` failing under a non-exception error mode) becomes `I18nStorageException`. Neither can masquerade as a miss, an empty list or a policy denial. `PDO::ERRMODE_EXCEPTION` is the supported mode.
 *   Every package exception implements `Maatify\I18n\Exception\I18nExceptionInterface`; external `PDOException`s are not forced to.
@@ -107,7 +107,7 @@ The package utilizes a **Strong Consistency** model.
 ## 4. Dependencies
 
 *   **Internal:** none on language data. No language registry repository, service, DTO or exception; no FK/JOIN to any language table.
-*   **External:** PDO (Database), `maatify/shared-common` (Clock), `maatify/exceptions`, `maatify/persistence` `^1.4` (transactions, ordering, pagination).
+*   **External:** PDO (Database), `maatify/shared-common` (Clock), `maatify/exceptions`, `maatify/php-persistence` `1.0.0-rc.1` (transactions, ordering, pagination).
 *   **Optional:** `php-di/php-di` + `psr/container` only for `Adapter/PhpDi/I18nBindings` (Composer `suggest`; the Core never loads them).
 
 ## 5. Host Responsibilities

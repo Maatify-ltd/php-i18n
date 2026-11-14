@@ -13,7 +13,7 @@ use Maatify\I18n\Management\Command\CreateDomainCommand;
 use Maatify\I18n\Management\Command\UpdateDomainMetadataCommand;
 use Maatify\I18n\Management\Criteria\DomainListCriteria;
 use Maatify\I18n\Management\Criteria\ScopeDomainListCriteria;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 
 /**
  * Persistence boundary of the domain governance table.
@@ -50,17 +50,17 @@ interface DomainRepositoryInterface
     public function listByCodes(array $codes): DomainCollectionDTO;
 
     /**
-     * @return PageResult<DomainDTO>
+     * @return PageResultDTO<DomainDTO>
      */
-    public function search(DomainListCriteria $criteria): PageResult;
+    public function search(DomainListCriteria $criteria): PageResultDTO;
 
     /**
      * Domains with their assignment flag for one scope (paginated). Both
      * tables are Package-owned; the scope code is supplied by the caller.
      *
-     * @return PageResult<DomainAssignmentDTO>
+     * @return PageResultDTO<DomainAssignmentDTO>
      */
-    public function pageWithAssignment(ScopeDomainListCriteria $criteria): PageResult;
+    public function pageWithAssignment(ScopeDomainListCriteria $criteria): PageResultDTO;
 
     /**
      * @throws DomainAlreadyExistsException on a duplicate code (DB UNIQUE is the race authority)
@@ -97,7 +97,7 @@ interface DomainRepositoryInterface
     public function lockOrderingScope(): void;
 
     /**
-     * Move to a display position through maatify/persistence ordering.
+     * Move to a display position through maatify/php-persistence ordering.
      *
      * @return bool false when the domain does not exist
      */

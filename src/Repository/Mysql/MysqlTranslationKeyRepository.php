@@ -13,12 +13,12 @@ use Maatify\I18n\Management\Command\CreateKeyCommand;
 use Maatify\I18n\Management\Command\RenameKeyCommand;
 use Maatify\I18n\Management\Criteria\KeyListCriteria;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
-use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
-use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
-use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
+use Maatify\PhpPersistence\Pagination\Config\PaginationConfig;
+use Maatify\PhpPersistence\Pagination\Criteria\PdoPaginationQueryDescriptor;
+use Maatify\PhpPersistence\Pagination\Repository\PdoPaginator;
+use Maatify\PhpPersistence\Pagination\Enum\SortDirectionEnum;
+use Maatify\PhpPersistence\Pagination\ValueObject\SortWhitelist;
 use PDO;
 use PDOException;
 
@@ -189,9 +189,9 @@ final readonly class MysqlTranslationKeyRepository implements TranslationKeyRepo
      * the global key population; the filtered count includes the required scope
      * and optional filters. Default order is ID ascending.
      *
-     * @return PageResult<TranslationKeyDTO>
+     * @return PageResultDTO<TranslationKeyDTO>
      */
-    public function search(KeyListCriteria $criteria): PageResult
+    public function search(KeyListCriteria $criteria): PageResultDTO
     {
         $where = ['k.scope = :scope'];
         $params = ['scope' => $criteria->scopeCode];

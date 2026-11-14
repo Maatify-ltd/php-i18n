@@ -10,7 +10,7 @@
         "php",
         "maatify"
     ],
-    "homepage": "https://github.com/Maatify/php-i18n",
+    "homepage": "https://github.com/Maatify-ltd/php-i18n",
     "type": "library",
     "license": "proprietary",
     "authors": [
@@ -21,8 +21,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/Maatify/php-i18n/issues",
-        "source": "https://github.com/Maatify/php-i18n"
+        "issues": "https://github.com/Maatify-ltd/php-i18n/issues",
+        "source": "https://github.com/Maatify-ltd/php-i18n"
     },
     "autoload": {
         "psr-4": {
@@ -39,9 +39,9 @@
         "ext-pdo": "*",
         "ext-pdo_mysql": "*",
         "maatify/exceptions": "^1.1",
-        "maatify/persistence": "^1.4",
+        "maatify/php-persistence": ">=1.0.0-rc.1 <=1.0.0-rc.1",
         "maatify/shared-common": "^1.0",
-        "php": "^8.4"
+        "php": ">=8.4.27 <8.5.0 || >=8.5.12 <8.6.0"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.95",
@@ -98,7 +98,7 @@
         "optimize-autoloader": true,
         "sort-packages": true,
         "platform": {
-            "php": "8.4.0"
+            "php": "8.4.27"
         },
         "policy": {
             "advisories": {

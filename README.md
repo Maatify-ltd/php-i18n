@@ -6,14 +6,14 @@
 
 [![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](CHANGELOG.md)
 [![Version](https://img.shields.io/badge/Version-1.0.0--rc.1-blue)](https://packagist.org/packages/maatify/php-i18n)
-[![PHP](https://img.shields.io/badge/PHP-%5E8.4-8892BF)](composer.json)
+[![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
 
 [![Packagist](https://img.shields.io/badge/Packagist-Distribution-blue)](https://packagist.org/packages/maatify/php-i18n)
 [![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
 [![Total Downloads](https://img.shields.io/packagist/dt/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
-[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify)
+[![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify-ltd)
 [![Install](https://img.shields.io/badge/Install-1.0.0--rc.1%40RC-blue)](#installation)
 
 [![Usage Guide](https://img.shields.io/badge/Docs-Usage%20Guide-informational)](docs/guides/USAGE_GUIDE.md)
@@ -41,7 +41,7 @@ Release Target: `1.0.0-rc.1` · Publication State: Published pre-release · Life
 - **Fail-soft reads, fail-hard writes:** a runtime miss returns `null` or an empty DTO; a write violating governance throws a typed exception.
 - **Synchronous derived state:** per-domain, per-language summary and per-key counters are updated in the same transaction and are rebuildable.
 - **Package-owned persistence:** seven `maa_i18n_*` tables; no foreign key to, and no join with, any Host table.
-- **Shared transaction semantics:** transactions, ordering and pagination come from `maatify/persistence`; an outer transaction on the same connection is joined, never committed or rolled back by I18n.
+- **Shared transaction semantics:** transactions, ordering and pagination come from `maatify/php-persistence`; an outer transaction on the same connection is joined, never committed or rolled back by I18n.
 - **Container-free Core:** plain constructor wiring; an optional PHP-DI adapter is available but never required.
 
 ## Requirements
@@ -50,17 +50,17 @@ Release Target: `1.0.0-rc.1` · Publication State: Published pre-release · Life
 
 | Requirement | Constraint |
 |---|---|
-| PHP | `^8.4` |
+| PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` (development checkout) |
 | Extensions | `ext-mbstring`, `ext-pdo`, `ext-pdo_mysql` |
 | `maatify/exceptions` | `^1.1` |
-| `maatify/persistence` | `^1.4` |
+| `maatify/php-persistence` | `1.0.0-rc.1` (development checkout) |
 | `maatify/shared-common` | `^1.0` |
 | Database | MySQL (InnoDB, `utf8mb4`); MySQL 8.4 is the version exercised by the package verification |
 | Optional | `php-di/php-di` and `psr/container` only for the optional PHP-DI adapter (`suggest`) |
 
 ## Installation
 
-Install the exact published Release Candidate from Packagist:
+The table describes the current checkout. The published I18n RC keeps the requirements and API documented in its own release. Install it from Packagist:
 
 ```bash
 composer require maatify/php-i18n:1.0.0-rc.1@RC
@@ -201,7 +201,10 @@ The final aggregate job of the workflow is `I18n Package CI Gate`.
 
 ## License
 
-Proprietary. See [LICENSE](LICENSE).
+This package is proprietary. Obtain written authorization before use by
+requesting a free license from [Maatify support](mailto:support@maatify.dev).
+Include your organization name, if applicable, and a contact email for license
+administration, security advisories, and critical update notices. See [LICENSE](LICENSE).
 
 ## Author
 

@@ -12,7 +12,7 @@ use Maatify\I18n\Management\Command\CreateScopeCommand;
 use Maatify\I18n\Management\Command\UpdateScopeMetadataCommand;
 use Maatify\I18n\Management\Criteria\ScopeListCriteria;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 use PDO;
 use PDOException;
 
@@ -79,11 +79,11 @@ final readonly class MysqlScopeRepository implements ScopeRepositoryInterface
     /**
      * Return filtered scopes as a page; the unfiltered total remains the full
      * scope population, while the filtered count reflects the criteria.
-     * Pagination and ordering are delegated to maatify/persistence.
+     * Pagination and ordering are delegated to maatify/php-persistence.
      *
-     * @return PageResult<ScopeDTO>
+     * @return PageResultDTO<ScopeDTO>
      */
-    public function search(ScopeListCriteria $criteria): PageResult
+    public function search(ScopeListCriteria $criteria): PageResultDTO
     {
         $where = [];
         $params = [];
@@ -224,7 +224,7 @@ final readonly class MysqlScopeRepository implements ScopeRepositoryInterface
         $this->support->lockOrderingScope();
     }
 
-    /** Delegate the move to maatify/persistence; false means the scope row is missing. */
+    /** Delegate the move to maatify/php-persistence; false means the scope row is missing. */
     public function moveToPosition(int $id, int $position): bool
     {
         return $this->support->moveToPosition($id, $position);

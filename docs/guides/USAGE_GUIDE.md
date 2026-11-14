@@ -70,7 +70,7 @@ use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
-use Maatify\Persistence\Pdo\Transaction\PdoTransactionRunner;
+use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 
 $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -158,7 +158,7 @@ Rules to remember: codes are case-sensitive (`'ar'` is not `'AR'`); `'ar-EG'` do
 
 ## 7. Management Reads
 
-**Input:** `*Criteria` objects carrying a `PageRequest`; you supply the exact language codes to measure. **Public call:** `I18nManagementReadService`. **Result:** `PageResult` of DTOs. **Boundary:** I18n never reads your language table.
+**Input:** `*Criteria` objects carrying a `PageRequest`; you supply the exact language codes to measure. **Public call:** `I18nManagementReadService`. **Result:** `PageResultDTO` of DTOs. **Boundary:** I18n never reads your language table.
 
 ```php
 $page = $managementRead->searchKeys(new KeyListCriteria(

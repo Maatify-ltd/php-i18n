@@ -6,7 +6,7 @@ namespace Maatify\I18n\Management\Criteria;
 
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\ValueObject\LanguageCode;
-use Maatify\Persistence\Pdo\Pagination\PageRequest;
+use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 
 /**
  * Keys x exact-language-codes grid of one (scope, domain). The Host supplies the

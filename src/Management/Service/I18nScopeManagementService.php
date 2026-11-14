@@ -15,7 +15,7 @@ use Maatify\I18n\Management\Command\UpdateScopeMetadataCommand;
 use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
  * Scope governance mutations (create, metadata, active state, code change, ordering).
@@ -30,7 +30,7 @@ use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
  * same row before they decide, so they serialize with a code change instead
  * of racing it.
  *
- * Ordering is delegated to maatify/persistence (ScopedOrderingManager).
+ * Ordering is delegated to maatify/php-persistence (ScopedOrderingManager).
  */
 final readonly class I18nScopeManagementService
 {
@@ -139,7 +139,7 @@ final readonly class I18nScopeManagementService
     }
 
     /**
-     * Move to a display position (clamped by maatify/persistence).
+     * Move to a display position (clamped by maatify/php-persistence).
      *
      * @throws ScopeNotFoundException
      */

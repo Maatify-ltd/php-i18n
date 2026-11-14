@@ -10,14 +10,14 @@ use Maatify\I18n\DTO\TranslationGridRowDTO;
 use Maatify\I18n\Management\Criteria\DomainKeySummaryCriteria;
 use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Criteria\LanguageTranslationValuesCriteria;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 
 /**
  * Package-owned management read surface over keys x translations (ADR-019).
  *
  * Every language-facing input is an exact code supplied by the Host; the
  * Package never reads a Host language table. Pagination mechanics are
- * delegated to maatify/persistence; the Package owns filters, search, count
+ * delegated to maatify/php-persistence; the Package owns filters, search, count
  * alignment and row mapping.
  */
 interface TranslationQueryRepositoryInterface
@@ -26,22 +26,22 @@ interface TranslationQueryRepositoryInterface
      * Keys of one (scope, domain) with the number of the supplied exact codes
      * each key is still missing.
      *
-     * @return PageResult<KeyTranslationSummaryDTO>
+     * @return PageResultDTO<KeyTranslationSummaryDTO>
      */
-    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResult;
+    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResultDTO;
 
     /**
      * Keys x supplied exact codes of one (scope, domain); `value === null`
      * marks a missing translation.
      *
-     * @return PageResult<TranslationGridRowDTO>
+     * @return PageResultDTO<TranslationGridRowDTO>
      */
-    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResult;
+    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResultDTO;
 
     /**
      * Every key with its translation in one exact language scope.
      *
-     * @return PageResult<LanguageTranslationValueDTO>
+     * @return PageResultDTO<LanguageTranslationValueDTO>
      */
-    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResult;
+    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResultDTO;
 }

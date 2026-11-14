@@ -11,12 +11,12 @@ use Maatify\I18n\Management\Criteria\DomainKeySummaryCriteria;
 use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Criteria\LanguageTranslationValuesCriteria;
 use Maatify\I18n\Repository\TranslationQueryRepositoryInterface;
-use Maatify\Persistence\Pdo\Pagination\PageResult;
-use Maatify\Persistence\Pdo\Pagination\PaginationConfig;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginationQueryDescriptor;
-use Maatify\Persistence\Pdo\Pagination\PdoPaginator;
-use Maatify\Persistence\Pdo\Pagination\SortDirectionEnum;
-use Maatify\Persistence\Pdo\Pagination\SortWhitelist;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
+use Maatify\PhpPersistence\Pagination\Config\PaginationConfig;
+use Maatify\PhpPersistence\Pagination\Criteria\PdoPaginationQueryDescriptor;
+use Maatify\PhpPersistence\Pagination\Repository\PdoPaginator;
+use Maatify\PhpPersistence\Pagination\Enum\SortDirectionEnum;
+use Maatify\PhpPersistence\Pagination\ValueObject\SortWhitelist;
 use PDO;
 
 /**
@@ -38,9 +38,9 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
      * language codes each key is missing. Duplicate codes count once; an empty
      * code list yields zero total languages and zero missing per key.
      *
-     * @return PageResult<KeyTranslationSummaryDTO>
+     * @return PageResultDTO<KeyTranslationSummaryDTO>
      */
-    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResult
+    public function pageDomainKeySummaries(DomainKeySummaryCriteria $criteria): PageResultDTO
     {
         $codes = array_values(array_unique($criteria->languageCodes));
         $totalLanguages = count($codes);
@@ -131,9 +131,9 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
      * and deduplicated; an empty list yields no grid rows, and a null value marks
      * a missing translation.
      *
-     * @return PageResult<TranslationGridRowDTO>
+     * @return PageResultDTO<TranslationGridRowDTO>
      */
-    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResult
+    public function pageDomainTranslationGrid(DomainTranslationGridCriteria $criteria): PageResultDTO
     {
         $codes = array_values(array_unique($criteria->languageCodes));
 
@@ -258,9 +258,9 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
      * keys without a row remain in the result with null translation fields.
      * Filtering, sorting, and page selection are applied through the criteria.
      *
-     * @return PageResult<LanguageTranslationValueDTO>
+     * @return PageResultDTO<LanguageTranslationValueDTO>
      */
-    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResult
+    public function pageLanguageTranslationValues(LanguageTranslationValuesCriteria $criteria): PageResultDTO
     {
         $where = [];
         $filterParams = [];

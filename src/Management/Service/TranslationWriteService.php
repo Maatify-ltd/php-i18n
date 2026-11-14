@@ -19,7 +19,7 @@ use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
 use Maatify\I18n\Service\MissingCounterService;
 use Maatify\I18n\ValueObject\LanguageCode;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
  * Key and translation mutations.

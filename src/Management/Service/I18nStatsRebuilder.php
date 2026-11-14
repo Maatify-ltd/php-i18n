@@ -6,7 +6,7 @@ namespace Maatify\I18n\Management\Service;
 
 use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\KeyStatsRepositoryInterface;
-use Maatify\Persistence\Pdo\Transaction\TransactionRunnerInterface;
+use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
  * Rebuilds the derived I18n statistics from authoritative keys and translations.
