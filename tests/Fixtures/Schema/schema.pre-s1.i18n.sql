@@ -37,7 +37,7 @@ SET FOREIGN_KEY_CHECKS=1;
  * - No soft delete anywhere. Keys / translations are hard-deleted;
  *   translations and per-key stats cascade from their key.
  * - Display order: `sort_order` on scopes and domains is maintained
- *   exclusively through maatify/php-persistence (ScopedOrderingManager);
+ *   exclusively through maatify/persistence (ScopedOrderingManager);
  *   it is never accepted by create/update operations.
  * - Governance identity (scope code, domain code) is referenced by
  *   code from keys / mappings / summary WITHOUT a foreign key. The
@@ -87,7 +87,7 @@ CREATE TABLE maa_i18n_scopes (
     is_active TINYINT(1) NOT NULL DEFAULT 1
         COMMENT '1 = scope accepts governed usage, 0 = disabled',
     sort_order INT NOT NULL DEFAULT 0
-        COMMENT 'Display position, managed only through maatify/php-persistence ordering',
+        COMMENT 'Display position, managed only through maatify/persistence ordering',
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         COMMENT 'Creation timestamp',
@@ -135,7 +135,7 @@ CREATE TABLE maa_i18n_domains (
     is_active TINYINT(1) NOT NULL DEFAULT 1
         COMMENT '1 = domain accepts governed usage, 0 = disabled',
     sort_order INT NOT NULL DEFAULT 0
-        COMMENT 'Display position, managed only through maatify/php-persistence ordering',
+        COMMENT 'Display position, managed only through maatify/persistence ordering',
 
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         COMMENT 'Creation timestamp',
