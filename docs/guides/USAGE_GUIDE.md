@@ -10,13 +10,15 @@ Install the exact published RC in a consumer project:
 composer require maatify/php-i18n:1.0.0-rc.1@RC
 ```
 
+If you installed this RC, follow the [1.0.0-rc.1 guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md) for its requirements and examples. The rest of this guide and its examples apply to the current repository checkout.
+
 ## 1. Fit, Requirements and Boundaries
 
 **Use I18n when** you want database-driven, governed translations: keys are structured as `scope.domain.key_part`, a key can only exist inside an assigned `(scope, domain)`, and values are stored per exact language code in MySQL.
 
 **You need:**
 
-- For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements. For the published RC, use the [1.0.0-rc.1 guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md);
+- For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements.;
 - a MySQL database and a `PDO` connection with `PDO::ERRMODE_EXCEPTION`;
 - the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the seven `maa_i18n_*` tables, so never apply it over live data);
 - a clock implementing `Maatify\SharedCommon\Contracts\ClockInterface` (for example `SystemClock`).
