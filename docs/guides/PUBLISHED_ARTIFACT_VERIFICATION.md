@@ -1,12 +1,12 @@
 # Published Artifact Verification
 
-Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. For another version, set its expected tag and reference before running. For `v1.0.0-rc.2`, the procedure adds the exact Persistence RC allowance to the consumer root and keeps minimum stability at `stable`.
+Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. The example targets the published `v1.0.0-rc.2`. To verify another version, update both `tag` and `reference` before running. For `v1.0.0-rc.2`, the procedure adds the exact Persistence RC allowance to the consumer root and keeps minimum stability at `stable`.
 
 ```bash
 set -eu
 package=maatify/php-i18n
-tag=v1.0.0-rc.1
-reference=1f19ffa012b8d967c9717f7c1269aed5a1340081
+tag=v1.0.0-rc.2
+reference=2b449274e4017ea3a1be98feaf00639daeadbc6b
 checkout=$(git rev-parse --show-toplevel)
 test "$(git rev-parse "$tag^{commit}")" = "$reference"
 
