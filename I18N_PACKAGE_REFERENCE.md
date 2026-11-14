@@ -5,7 +5,7 @@ The canonical reference for the stable public, runtime and behavioral contract o
 - **Where to start:** [README.md](README.md) (overview, installation, quick usage) and [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) (integration walkthroughs).
 - **What this file does not own:** Composer facts (package identity, PHP and extension requirements, dependencies, autoload, scripts) are owned by [composer.json](composer.json). They are summarized here only where they explain runtime behavior.
 
-The API below describes the `1.0.0-rc.2` artifact. The published RC has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
+The API below describes the `1.0.0-rc.2` artifact. The previous release, `1.0.0-rc.1`, has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
 
 ## 1. Package Facts
 
