@@ -29,7 +29,7 @@ That makes I18n unable to run without LanguageCore and puts Host policy (which l
 
 1. The I18n runtime/persistence contract uses `?string $languageCode`. `language_id` does not exist in it.
 2. `NULL` is the **exact unlocalized scope**. A non-NULL code is the **exact scope of that code**. `NULL` is not a wildcard, not "default" and not "all".
-3. **No fallback inside I18n.** A read for `ar` reads `ar` only; a read for `NULL` reads `NULL` only; a miss returns the fail-soft empty result. Fallback is a Host policy (Athar User: `app/Infrastructure/I18n/Translator.php`).
+3. **No fallback inside I18n.** A read for `ar` reads `ar` only; a read for `NULL` reads `NULL` only; a miss returns the fail-soft empty result. Fallback is a Host policy.
 4. **No semantic language validation inside I18n.** I18n does not check that a code exists, is active, is default or is supported. It validates only the technical storage contract (§3).
 5. **No LanguageCore dependency** in `Modules/I18n`: no repository, service, DTO or exception from LanguageCore, and no FK/JOIN to `languages` or any other Host language table.
 6. **No silent normalization.** Codes are stored exactly as given (no lowercase, no trim-and-store). The column collation is binary (`utf8mb4_bin`) so `ar` and `AR` are distinct identities.
@@ -70,13 +70,13 @@ UNIQUE (key_id, language_code_identity)
 Because the code is now the stable external identity inside I18n, renaming a language code in the Host changes the identity of its translations.
 
 * I18n exposes an explicit, package-owned operation `TranslationWriteService::rekeyLanguageCode(string $oldCode, string $newCode)`: it re-keys the authoritative `i18n_translations` rows and rebuilds the affected derived summary rows inside one I18n transaction. It fails hard (`I18nConflictException`) if `newCode` already owns translations, and does not validate the language semantically.
-* The **Host** orchestrates the rename. In Athar, `LanguageCodeChangeService` (AdminKernel) runs, in one database transaction on the shared connection: resolve the language → validate the new code against the storage contract → `LanguageManagementService::updateLanguageCode` → `rekeyLanguageCode(old, new)`. Any failure rolls both sides back. Renaming a code through LanguageCore alone (leaving I18n rows under the old code) is not supported and no path in Athar performs it.
+* The **Host** orchestrates the rename in one database transaction on the shared connection. Resolve the language, validate the new code against the storage contract, update the Host language code, and call `rekeyLanguageCode(old, new)`. Any failure rolls both sides back. A standalone Host language rename would leave translations under the old code and is unsupported.
 * No FK cascade is used and I18n never edits LanguageCore data.
 
 ## 7. Trade-offs
 
 * No database-level referential integrity between translations and Host languages. A code with no Host language is an orphan **by Host policy**, not an I18n error; the Host decides whether to surface or purge it.
-* Fallback that used to be transparent inside I18n is now explicit Host code. Athar User applies the application default in `Translator` and the configured per-language fallback (`fallback_language_id`) in `LanguageFallbackTranslationSource`; both are explicit Host code now.
+* The Host implements fallback explicitly, including its application default and any per-language fallback.
 * Binary collation requires Host joins against `languages.code` to state `COLLATE utf8mb4_bin` explicitly.
 
 ## 8. Rejected Alternatives

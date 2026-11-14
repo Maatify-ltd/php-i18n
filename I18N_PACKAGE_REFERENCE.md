@@ -16,7 +16,7 @@ The API below describes the current checkout. The published RC has its own [Pack
 | Distribution state | Published Release Candidate `1.0.0-rc.1` through [Packagist](https://packagist.org/packages/maatify/php-i18n), with GitHub [tag and Release `v1.0.0-rc.1`](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.1). No Published Stable release or Stable support line exists. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
 | Checkout PHP | See the exact constraints in [composer.json](composer.json). |
-| Persistence | Package-owned MySQL schema of seven `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
+| Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
 | Shared mechanics | Transactions, display ordering and pagination come from `maatify/php-persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
 | Optional integration | PHP-DI adapter `Maatify\I18n\Adapter\PhpDi\I18nBindings`; `php-di/php-di` and `psr/container` are Composer `suggest` entries, never runtime requirements |
 
@@ -364,6 +364,23 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 - **No soft delete.** Translations hard-delete; per-key stats cascade from their key.
 - **Derived tables** are non-authoritative and rebuildable; `I18nStatsRebuilder::fullRebuild()` is the canonical recovery from drift.
 - **Time:** the Package never changes the global timezone; the translation repository takes its clock from the shared `ClockInterface`; the Host owns timezone policy.
+
+### 8.1 Optional Translation Key Preview
+
+[The additive schema](schema/translation-key-preview.sql) installs `maa_i18n_translation_key_previews` independently of the seven core tables. It is safe to apply on an existing installation. It has no dependency on Host tables or translation records. Install it separately wherever the preview API is used.
+
+| API | Contract |
+|---|---|
+| `PreviewTarget(scope, domain, key?)` | A null key selects the entire domain. A supplied key selects one exact identity. Components follow the core storage size limits and use case-sensitive, byte-exact matching over render inputs. Targets can include keys with no translation row. |
+| `TranslationKeyPreviewService::activate(targets, expiresAt)` | Persists a non-empty list of targets in one insert and returns a snapshot with a new ID. Targets combine with OR. The deadline must be in the future and is stored in UTC with microsecond precision. |
+| `getActive(id)` | Returns a request snapshot or null for missing, deactivated, or expired IDs. The deadline is exclusive. |
+| `deactivate(id)` | Deletes the stored row and reports whether it existed. |
+| `purgeExpired()` | Deletes expired rows and returns the count. Expiry takes effect on read even without cleanup. |
+| `TranslationKeyPreview::matches(scope, domain, key)` | Reports whether the render identity matches any selected target. |
+| `TranslationKeyPreview::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
+| `TranslationKeyPreview::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
+
+Preview reads and writes use the supplied PDO and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
 
 ## 9. Consumer Workflow
 
