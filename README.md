@@ -9,7 +9,7 @@
 </picture>
 
 [![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](CHANGELOG.md)
-[![Version](https://img.shields.io/badge/Version-1.0.0--rc.1-blue)](https://packagist.org/packages/maatify/php-i18n)
+[![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](CHANGELOG.md#100-rc2)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
@@ -18,7 +18,7 @@
 [![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
 [![Total Downloads](https://img.shields.io/packagist/dt/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify-ltd)
-[![Install](https://img.shields.io/badge/Install-1.0.0--rc.1%40RC-blue)](#installation)
+[![Install](https://img.shields.io/badge/Install-1.0.0--rc.2%40RC-blue)](#installation)
 
 [![Usage Guide](https://img.shields.io/badge/Docs-Usage%20Guide-informational)](docs/guides/USAGE_GUIDE.md)
 [![Examples](https://img.shields.io/badge/Docs-Examples-informational)](examples/)
@@ -30,7 +30,7 @@
 
 `maatify/php-i18n` is a governed, database-driven translation layer for PHP: structured keys, exact-scope translation values in MySQL, fail-soft runtime reads, management reads for admin screens, and operational coverage facts. Language identity stays with the Host: I18n stores an exact, nullable language code and never applies a fallback.
 
-Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists. The version and install badges above reflect the published release at qualification. See [Installation](#installation).
+Release artifact target: `1.0.0-rc.2` (Release Candidate). At qualification, `1.0.0-rc.2` is unpublished and `1.0.0-rc.1` is the Published Release Candidate on Packagist. No Published Stable release or Stable support line exists. The version and install badges identify the artifact target. See [Installation](#installation).
 
 </div>
 
@@ -175,6 +175,7 @@ Maintained examples cover every material capability and run against a disposable
 | Dependency compatibility | latest-compatible and lowest-supported resolutions both verified |
 | Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; [published RC dist and presentation results](docs/guides/PUBLISHED_ARTIFACT_VERIFICATION.md) is recorded separately |
 | Examples | every example smoke-executed |
+| Release artifact verification | [Archive verification procedure](docs/guides/RELEASE_ARTIFACT_VERIFICATION.md) |
 | Composer audit and platform requirements | enforced |
 | Release | Artifact target `1.0.0-rc.2`. See [CHANGELOG.md](CHANGELOG.md) |
 

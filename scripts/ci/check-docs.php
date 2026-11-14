@@ -174,6 +174,7 @@ if (!str_ends_with(trim($changelog), '[1.0.0-rc.1]: https://github.com/Maatify-l
 
 $releaseTarget = '1.0.0-rc.2';
 $publishedRc = '1.0.0-rc.1';
+$targetBadgeVersion = str_replace('-', '--', $releaseTarget);
 $artifactIdentity = 'Release artifact target: `' . $releaseTarget . '` (Release Candidate).';
 $qualificationState = 'At qualification, `' . $releaseTarget . '` is unpublished and `'
     . $publishedRc . '` is the Published Release Candidate on Packagist.';
@@ -227,7 +228,7 @@ if (count($badgeRows) !== count($expectedBadgeRows)) {
 }
 $requiredBadges = [
     'Status-Release%20Candidate-blue',
-    'Version-1.0.0--rc.1-blue',
+    'Version-' . $targetBadgeVersion . '-blue',
     'PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF',
     'License-Proprietary-green',
     'PHPStan-Level%20Max-4E8CAE',
@@ -235,7 +236,7 @@ $requiredBadges = [
     'packagist/dm/maatify/php-i18n',
     'packagist/dt/maatify/php-i18n',
     'Maatify-Ecosystem-blueviolet',
-    'Install-1.0.0--rc.1%40RC-blue',
+    'Install-' . $targetBadgeVersion . '%40RC-blue',
 ];
 foreach ($requiredBadges as $badge) {
     if (!str_contains($readmeHeader, 'https://img.shields.io/' . $badge)

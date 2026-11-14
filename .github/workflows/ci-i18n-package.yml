@@ -89,6 +89,15 @@ jobs:
       - name: Documentation consistency
         run: composer check:docs
 
+      - name: Release archive verification
+        env:
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if ! git cat-file -e "${CANDIDATE_SHA}^{commit}"; then
+            git fetch --no-tags origin "${CANDIDATE_SHA}"
+          fi
+          bash scripts/ci/verify-release-artifact.sh "${CANDIDATE_SHA}"
+
   unit:
     name: Unit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
