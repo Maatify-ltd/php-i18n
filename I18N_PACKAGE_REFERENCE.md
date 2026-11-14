@@ -160,8 +160,7 @@ Read-only. A requested identity that does not exist is an exception; a list over
 
 | Method | Result | Throws |
 |---|---|---|
-| `getScope(int $id)`, `getScopeByCode(string $code)` | `TranslationKeyPreviewDTO` | `id`, `expiresAt`, `targets`. JSON uses `expires_at` as an ISO 8601 timestamp with microseconds and targets with `scope`, `domain`, and nullable `key`. |
-| `ScopeDTO` | `I18nInvalidArgumentException` for a non-positive id; `ScopeNotFoundException` |
+| `getScope(int $id)`, `getScopeByCode(string $code)` | `ScopeDTO` | `I18nInvalidArgumentException` for a non-positive id; `ScopeNotFoundException` |
 | `searchScopes(ScopeListCriteria)` | `PageResultDTO<ScopeDTO>` | |
 | `getDomain(int $id)` | `DomainDTO` | `I18nInvalidArgumentException` for a non-positive id; `DomainNotFoundException` |
 | `searchDomains(DomainListCriteria)` | `PageResultDTO<DomainDTO>` | |
@@ -249,6 +248,7 @@ All carry a `PageRequest $page = new PageRequest()`. Empty required codes and no
 
 | DTO | Fields |
 |---|---|
+| `TranslationKeyPreviewDTO` | `id`, `expiresAt`, `targets`. JSON uses `expires_at` as an ISO 8601 timestamp with microseconds and targets with `scope`, `domain`, and nullable `key`. |
 | `ScopeDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `createdAt` |
 | `DomainDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `createdAt` |
 | `DomainAssignmentDTO` | `id`, `code`, `name`, `?description`, `isActive`, `sortOrder`, `assigned` |

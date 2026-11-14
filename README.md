@@ -169,7 +169,7 @@ Maintained examples cover every material capability and run against a disposable
 | PHPStan level `max` (src, tests, examples, consumer harness) | enforced, zero errors, no baseline, no suppressions |
 | Unit suite (no Docker) and real-MySQL Integration suite | enforced on PHP 8.4 and 8.5 |
 | Dependency compatibility | latest-compatible and lowest-supported resolutions both verified |
-| Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; [published RC dist verification](docs/guides/PUBLISHED_ARTIFACT_VERIFICATION.md) is recorded separately |
+| Consumer Verification Harness | repository-path dependency in an external Composer root, production autoload, real MySQL, two clean runs; [published RC dist and presentation results](docs/guides/PUBLISHED_ARTIFACT_VERIFICATION.md) is recorded separately |
 | Examples | every example smoke-executed |
 | Composer audit and platform requirements | enforced |
 | Release | Published Release Candidate `1.0.0-rc.1`; no Published Stable release or Stable support line. See [CHANGELOG.md](CHANGELOG.md) |
