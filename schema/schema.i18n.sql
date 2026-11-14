@@ -17,7 +17,7 @@ SET FOREIGN_KEY_CHECKS=1;
  * I18N PACKAGE — TRANSLATION LAYER SCHEMA
  * ----------------------------------------------------------
  * Authoritative fresh-install schema of the I18n package.
- * Package-owned tables (the complete set, `maa_i18n_` prefix):
+ * Seven core package tables (`maa_i18n_` prefix):
  *   maa_i18n_scopes
  *   maa_i18n_domains
  *   maa_i18n_domain_scopes
@@ -25,6 +25,9 @@ SET FOREIGN_KEY_CHECKS=1;
  *   maa_i18n_translations
  *   maa_i18n_domain_language_summary   (derived)
  *   maa_i18n_key_stats                 (derived)
+ *
+ * Install the optional preview table separately using
+ * schema/translation-key-preview.sql.
  *
  * Purpose:
  * - Provide structured translation key management

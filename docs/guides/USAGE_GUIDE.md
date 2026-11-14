@@ -255,7 +255,7 @@ $frontendMessages = $preview?->applyToDomain($scope, $domain, $cachedDomainMessa
 
 Match against the structured scope, domain, and key supplied by the renderer. For a frontend that uses a flat message map, apply the preview to each domain map before flattening, in the same merge order as normal rendering. The map operation preserves existing entries. For known keys with no translation, use `labelFor()` with the structured key and export the resulting label if selected. Escape labels using the same output rules as translated values.
 
-The Host controls who can activate a preview, who can see it, and how an authorized request selects a preview ID. An ID is not a credential. The Host can select one preview per authorized session or select one for the whole site, for example on a staging environment. Keep preview output out of shared page and CDN caches. Keep the cached translation values intact.
+The Host controls who can activate a preview, who can see it, and how an authorized request selects a preview ID. An ID is not a credential. The Host can select one preview per authorized session or select one for the whole site, for example on a staging environment. For preview requests, bypass cache reads and writes at both the shared page cache and CDN. Reads must be bypassed before a cache can serve a normal page, and writes must be bypassed so preview output stays private. Keep the cached translation values intact.
 
 Call `deactivate($id)` to stop a preview. Resolve `getActive($id)` again on the next request so deactivation and expiry take effect. If the Host needs to reclaim storage, call `purgeExpired()` periodically.
 
