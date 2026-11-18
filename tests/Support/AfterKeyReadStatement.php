@@ -25,6 +25,7 @@ final class AfterKeyReadStatement extends PDOStatement
         return $row;
     }
 
+    /** @return array<array-key, mixed> */
     public function fetchAll(int $mode = PDO::FETCH_DEFAULT, mixed ...$args): array
     {
         $rows = parent::fetchAll($mode, ...$args);
