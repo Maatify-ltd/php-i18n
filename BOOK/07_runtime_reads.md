@@ -46,7 +46,7 @@ $translation = $readService->getTranslation(
 
 `getValue()` remains a value-only compatibility read. `getTranslation()` returns the value and optional type together. Both use the same exact-scope and fail-soft rules.
 
-The built-in MySQL repository reads the structured key identity and its exact translation in one statement. A concurrent move cannot combine the old key identity with the new translation.
+The built-in MySQL repository reads the structured key identity and its exact translation in one statement. Under `READ COMMITTED` and `REPEATABLE READ`, this keeps the key identity and translation consistent during a concurrent move.
 
 ## 3. Bulk Domain Read (`TranslationDomainReadService`)
 
@@ -79,7 +79,7 @@ $login = $typed->get('login.title'); // TranslationValueDTO: value + nullable ty
 *   `getDomainValues()` remains value-only. `getDomainTranslations()` returns `key_part => TranslationValueDTO`; absent rows are omitted, while an existing row with an empty value remains present.
 *   Every non-null type is an opaque consumer-defined token. I18n does not define its vocabulary or assign behavior to it, and does not trust, render or sanitize value content.
 
-With the built-in repositories on one PDO connection, MySQL reads the governance state, keys, and exact translations in one statement. A concurrent deactivation cannot pair an earlier governance decision with a later translation.
+With the built-in repositories on one PDO connection, MySQL reads the governance state, keys, and exact translations in one statement. Under `READ COMMITTED` and `REPEATABLE READ`, the single statement keeps the governance decision and the translations consistent during a concurrent deactivation.
 
 The package does not cache reads. A Host that repeatedly reads the same domain may choose to cache bulk reads when appropriate. If the Host caches these results, it is responsible for invalidating them after writes through `TranslationWriteService`.
 

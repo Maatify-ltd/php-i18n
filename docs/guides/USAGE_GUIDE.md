@@ -166,7 +166,9 @@ The value-only methods keep their existing result shapes. Rich reads distinguish
 
 Rules to remember: codes are case-sensitive (`'ar'` is not `'AR'`); `'ar-EG'` does not fall back to `'ar'`; a bulk read of a domain that is not readable under the policy is empty.
 
-**Fallback is yours.** If your product wants `ar-EG` then `ar` then `en`, write that chain around `getValue` (see [example 03](../../examples/03-exact-reads-and-host-fallback.php)); treat `''` as an answer, not as a miss. Cache the result of `getDomainValues` (it reads each key separately) and invalidate after writes.
+**Fallback is yours.** If your product wants `ar-EG` then `ar` then `en`, write that chain around `getValue` (see [example 03](../../examples/03-exact-reads-and-host-fallback.php)). An empty string is an existing translation.
+
+With the built-in MySQL repositories on one PDO connection, `getDomainValues` and `getDomainTranslations` apply governance and read translations in one SQL statement. See the [read contract](../../I18N_PACKAGE_REFERENCE.md#51-consumer-reads-consumer) for isolation and custom repository behavior. If the Host caches a domain result, invalidate it after writes.
 
 ## 7. Management Reads
 

@@ -24,7 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Refresh translation coverage in the current scope and domain when a Host transaction started before the key moved.
 - Keep coverage correct when the first translation and a key are created concurrently.
 - Use current key uniqueness when an older Host snapshot still sees a released name.
-- Read governance, exact translation values, and current key identities from one snapshot during concurrent changes.
+- Read exact key identities and translations together. Built-in MySQL domain reads also apply governance in the same statement.
 - Serialize initial scope and domain display order allocation.
 - Roll back failed preview activations and support injected preview storage.
 - Reject invalid stored activity flags and malformed language filter lists. Measure UTF-8 input lengths independently of Host encoding.

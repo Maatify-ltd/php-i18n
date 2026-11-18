@@ -71,14 +71,19 @@ final class ConsumerReadConsistencyTest extends MysqlIntegrationTestCase
         self::assertSame('new domain value', $this->reader->getValue('ar', 'ct', 'next', 'title'));
     }
 
-    /** @return array<string, array{bool}> */
+    /** @return array<string, array{bool, string}> */
     public static function transactionModes(): array
     {
-        return ['standalone read' => [false], 'Host READ COMMITTED' => [true]];
+        return [
+            'standalone READ COMMITTED' => [false, 'READ COMMITTED'],
+            'Host READ COMMITTED' => [true, 'READ COMMITTED'],
+            'standalone REPEATABLE READ' => [false, 'REPEATABLE READ'],
+            'Host REPEATABLE READ' => [true, 'REPEATABLE READ'],
+        ];
     }
 
     #[DataProvider('transactionModes')]
-    public function testGovernanceAndValueUseOneSnapshotDuringDeactivation(bool $outer): void
+    public function testGovernanceAndValueUseOneSnapshotDuringDeactivation(bool $outer, string $isolation): void
     {
         $pdo = $this->pdo();
         $keyId = $this->createKey('ct', 'home', 'title');
@@ -104,7 +109,7 @@ final class ConsumerReadConsistencyTest extends MysqlIntegrationTestCase
             }
         };
 
-        $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL ' . $isolation);
         $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [AfterSelectedReadStatement::class, [$afterRead, 'maa_i18n_domain_scopes']]);
         if ($outer) {
             $pdo->beginTransaction();
