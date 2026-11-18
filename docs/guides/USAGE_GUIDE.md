@@ -233,8 +233,9 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 
 | Symptom | Check |
 |---|---|
-| a read returns `null` | the exact code the rows were stored with (`'ar'` is not `'AR'`, `null` is not any code); the key exists in exactly that `scope`, `domain`, `key_part`; the `(scope, domain)` is active and assigned (only matters for bulk reads); nothing falls back, so apply your own chain |
-| a key cannot be created | the scope and the domain exist and are active, and the domain is assigned to the scope |
+| a single-key read returns `null` | check the structured key and exact stored language code, including `null` for the unlocalized scope |
+| a domain read is empty | check for stored values in the exact language scope and verify the pair against the [configured governance mode](../../I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services) |
+| a key cannot be created | check the typed error. Under `STRICT`, verify the scope and domain both exist, are active and have an assignment |
 | a code change is refused | the scope or domain code is still used by an assignment or a key |
 | a changed value does not show | I18n does not cache; invalidate your own cache after writes |
 | counts look wrong after a manual database edit | run `I18nStatsRebuilder::fullRebuild()` |

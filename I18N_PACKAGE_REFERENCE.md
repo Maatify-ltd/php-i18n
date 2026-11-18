@@ -320,7 +320,7 @@ The Host authorizes these operations and controls which requests can use a previ
 |---|---|---|
 | Strategy | **Fail-hard** | **Fail-soft** (runtime reads) |
 | Data problems | typed `I18nExceptionInterface` exceptions | `null`, `''` as a real value, or an empty DTO |
-| Governance | enforced by `I18nGovernancePolicyService` | a non-readable `(scope, domain)` yields an empty bulk result |
+| Governance | key creation and renames validate the target using `I18nGovernancePolicyService` | a policy denial yields an empty domain result. Single-key reads look up stored translations directly |
 | Management reads | n/a | a requested identity that does not exist throws a `*NotFoundException`; a list over an unknown parent is empty |
 
 ### 6.2 Exception catalog
@@ -413,7 +413,7 @@ Host input -> Public API -> Domain service -> Integration boundary -> Observable
 |---|---|
 | Host input | scope `web`, domain `home`, key `title`, language code `ar`, value `...` |
 | Public API | `CreateScopeCommand`, `CreateDomainCommand`, `assign`, `CreateKeyCommand`, `UpsertTranslationCommand` through the management and write services |
-| Domain service | governance policy, then key/translation write, then derived-layer maintenance, in one transaction |
+| Domain service | key creation and renames validate the target policy before writing. Writes that change derived state update it in the same transaction |
 | Integration boundary | your `PDO` (MySQL) through the Package repositories |
 | Observable result | `getValue('ar', 'web', 'home', 'title')` returns the value; `null` for an exact miss; management and operational reads show keys, grids and counts |
 

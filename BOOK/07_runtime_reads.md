@@ -10,7 +10,7 @@ Runtime translation reads treat missing data and invalid language codes as expec
 *   **Missing Data:**
     *   Missing Key → Returns `null`.
     *   Missing Translation in the requested exact scope → Returns `null` (there is **no fallback** inside I18n).
-    *   Invalid Domain → Returns empty DTO.
+    *   Domain denied by the configured policy → Returns an empty DTO.
     *   Invalid language code (empty / whitespace / > 16 chars) → `null` / empty DTO.
 
 **Exact scope only:** `getValue('ar', …)` reads `ar` only; `getValue(null, …)` reads the unlocalized (`NULL`) scope only. A miss never retries on another language or on `NULL`. Fallback is a Host policy: the Host wraps `getValue` with its own chain of codes.
@@ -75,7 +75,7 @@ $login = $typed->get('login.title'); // TranslationValueDTO: value + nullable ty
 **Behavior:**
 *   Returns strictly typed `TranslationDomainValuesDTO`.
 *   Contains only values of the requested exact scope (no fallback values).
-*   Returns empty array `[]` if domain has no keys or is invalid.
+*   Returns an empty result if there are no matching translations or the configured policy denies the scope and domain.
 *   `getDomainValues()` remains value-only. `getDomainTranslations()` returns `key_part => TranslationValueDTO`; absent rows are omitted, while an existing row with an empty value remains present.
 *   Every non-null type is an opaque consumer-defined token. I18n does not define its vocabulary or assign behavior to it, and does not trust, render or sanitize value content.
 

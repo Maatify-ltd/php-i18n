@@ -13,14 +13,14 @@ The library operates exclusively as a **database-driven** solution. It treats tr
 The library implements four mandatory design pillars:
 
 ### 1. Governance-First
-The system enforces a strict **Scope + Domain** policy. A translation key cannot be created unless it belongs to a pre-defined Scope and Domain, and that Domain is explicitly mapped to that Scope in the `maa_i18n_domain_scopes` table.
+Key creation, renames and domain reads follow the configured scope and domain policy. The default `STRICT` mode requires an existing, active scope, an existing, active domain and an assignment. `PERMISSIVE` can allow a missing scope or domain during migration or development. See the [governance model](03_governance_model.md) for activity and assignment rules.
 
 ### 2. Structured Keys
 Keys are structured hierarchical tuples: `scope.domain.key_part`. This structure is enforced by the database schema (unique constraint) and by the `TranslationWriteService`. Flat keys (e.g., `error_message`) are prohibited.
 
 ### 3. Fail-Hard Writes / Fail-Soft Reads
-*   **Writes (Admin/Setup):** State-modifying operations (creating keys, updating values) **must** fail hard. Policy violations throw typed exceptions immediately to ensure data integrity.
-*   **Reads (Runtime):** Data fetching operations **must** fail soft. Missing keys, invalid languages, or missing translations return `null` or empty DTOs. They do not throw exceptions, ensuring application stability.
+*   **Writes:** Key creation and renames throw typed exceptions on policy violations. Translation value mutations operate on a stored key ID.
+*   **Runtime reads:** Expected misses return `null` or an empty DTO. A policy denial yields an empty domain result. Single-key reads look up the stored translation directly. Storage failures propagate.
 
 ### 4. Zero Implicit Magic
 The library performs no auto-discovery or implicit loading. All state exists explicitly in the database. If a record is not in the database, it does not exist.

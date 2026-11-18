@@ -2,53 +2,37 @@
 
 ## Overview
 
-The `maatify/php-i18n` library employs a strict governance model to prevent key sprawl and ensure referential integrity.
+`I18nGovernancePolicyService` defines which scope and domain pairs are allowed when creating or renaming a key and when reading a domain. The [Package Reference](../I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services) defines the contract.
 
-This model is enforced by the **`I18nGovernancePolicyService`** during write operations. Runtime reads (fail-soft) do not throw governance exceptions but will return empty/null results if governance rules are violated.
+A policy denial throws a typed exception on key creation or rename and yields an empty result on a domain read. Single-key reads look up the stored translation independently of governance. Deactivating a scope or domain preserves existing keys and translations.
 
 ## 1. Scopes (`maa_i18n_scopes`)
 
 Scopes define the top-level application boundaries.
 
-*   **Enforcement:** A translation key cannot be created unless its `scope` exists in this table and has `is_active=1`.
-*   **Purpose:** Ensures strict separation of concerns (e.g., `admin` keys cannot be loaded into `client` context).
+In `STRICT` mode, the scope must exist and have `is_active=1`. The scope code is also part of the structured key identity.
 
 ## 2. Domains (`maa_i18n_domains`)
 
 Domains represent functional areas within a scope.
 
-*   **Enforcement:** A translation key cannot be created unless its `domain` exists in this table and has `is_active=1`.
-*   **Purpose:** Groups related translations for bulk loading and caching.
+In `STRICT` mode, the domain must exist and have `is_active=1`. A domain groups related translations for bulk loading.
 
 ## 3. Domain-Scope Mapping (`maa_i18n_domain_scopes`)
 
 This table defines the permitted relationships between Scopes and Domains.
 
-*   **Definition:** A many-to-many relationship linking a `domain` to one or more `scopes`.
-*   **Enforcement:**
-    *   If you attempt to create a key `web.dashboard.title`:
-        1.  Does scope `web` exist? (Yes)
-        2.  Does domain `dashboard` exist? (Yes)
-        3.  Is `dashboard` explicitly mapped to `web` in `maa_i18n_domain_scopes`? (**NO**)
-    *   **Result:** The operation fails immediately with `DomainScopeViolationException`.
+A domain may be assigned to multiple scopes. If `web` and `dashboard` both exist and are active, creating `web.dashboard.title` without their assignment throws `DomainScopeViolationException` in either mode. A domain read for that pair returns an empty result.
 
 ## 4. The Policy Service
 
-The `I18nGovernancePolicyService` acts as the gatekeeper. It is injected into all write services (`TranslationWriteService`, etc.).
+`TranslationWriteService` uses the policy for key creation and renames. `TranslationDomainReadService` applies it for bulk reads.
 
 ### Modes
 The service operates in two modes, controlled via `I18nPolicyModeEnum`:
 
-1.  **STRICT (Default):**
-    *   Throws exceptions if Scope is missing/inactive.
-    *   Throws exceptions if Domain is missing/inactive.
-    *   Throws exceptions if Domain is not mapped to Scope.
-
-2.  **PERMISSIVE:**
-    *   Allows operations if the Scope or Domain record is physically missing from the database (bypassing the check).
-    *   Still enforces `is_active` checks if the records exist.
-    *   Still enforces mapping if both records exist.
-    *   *Note: This mode is exclusively for initial migration or development and must not be used in production.*
+- **`STRICT`** is the default production mode. The scope and domain must both exist and be active, and the domain must be assigned to the scope.
+- **`PERMISSIVE`** is for migration and development. It allows a missing scope or domain, rejects any existing inactive scope or domain, and requires an assignment when both records exist.
 
 ### Usage in Code
 
@@ -61,7 +45,7 @@ $governance = new I18nGovernancePolicyService(
     I18nPolicyModeEnum::STRICT
 );
 
-// Manual Assertion
+// Check the assignment for an existing, active scope and domain.
 try {
     $governance->assertScopeAndDomainAllowed('admin', 'billing');
 } catch (DomainScopeViolationException $e) {

@@ -7,11 +7,7 @@ This chapter provides end-to-end usage examples for common requirements.
 **Requirement:** Add translation keys for a "Dark Mode" toggle in the User Dashboard (`client` scope).
 
 **Steps:**
-1.  **Check Governance:**
-    Ensure `client` scope and `dashboard` domain exist and are mapped in `maa_i18n_domain_scopes`.
-    ```sql
-    SELECT * FROM maa_i18n_domain_scopes WHERE scope_code='client' AND domain_code='dashboard';
-    ```
+1.  **Prepare the scope and domain under `STRICT`.** Ensure `client` and `dashboard` exist and are active, then ensure `dashboard` is assigned to `client`. See the [governance setup](../docs/guides/USAGE_GUIDE.md#4-govern-scopes-and-domains).
 
 2.  **Create Keys:** (Write Service)
     ```php
@@ -85,7 +81,8 @@ The Host owns the language list and the fallback rule. This package stores exact
 **Steps:**
 1.  **Find the Key ID:**
     ```sql
-    SELECT id FROM maa_i18n_keys WHERE key_part='btn_submit';
+    SELECT id FROM maa_i18n_keys
+    WHERE scope = 'client' AND domain = 'auth' AND key_part = 'btn_submit';
     -- Assume ID = 105
     ```
 
