@@ -31,7 +31,8 @@ for format in git composer; do
     done
     for excluded in .git vendor composer.lock consumer-verification/vendor consumer-verification/composer.lock \
         dcos docs/decisions schema/migrations/2026-10-02-translation-type.sql \
-        tests/Fixtures/Schema/schema.pre-s1.i18n.sql tests/Integration/TranslationTypeMigrationTest.php; do
+        tests/Fixtures/Schema/schema.pre-s1.i18n.sql tests/Integration/TranslationTypeMigrationTest.php \
+        tests/Integration/ExactLanguageWritesMigrationTest.php; do
         test ! -e "${artifact}/${excluded}" || { echo "${format}: unexpected ${excluded}" >&2; exit 1; }
     done
     unexpected="$(find "${artifact}" \
@@ -41,6 +42,8 @@ for format in git composer; do
         -o -name '*.tmp' -o -name '*.patch')"
     test -z "${unexpected}" || { printf '%s: unexpected files\n%s\n' "${format}" "${unexpected}" >&2; exit 1; }
     cmp "${work}/source/composer.json" "${artifact}/composer.json"
+    cmp "${work}/source/schema/migrations/2026-11-18-exact-language-writes.sql" \
+        "${artifact}/schema/migrations/2026-11-18-exact-language-writes.sql"
     for document in README.md CHANGELOG.md SECURITY.md llms.txt I18N_PACKAGE_REFERENCE.md docs/guides/USAGE_GUIDE.md; do
         cmp "${work}/source/${document}" "${artifact}/${document}"
     done

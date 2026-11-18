@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Preserve trailing spaces in language identity and reject whitespace-only language codes.
 - Keep translated counts correct on unchanged upserts with PDO found-rows enabled.
 - Reject stored integers and generated IDs outside the PHP integer range.
+- Refresh translation coverage in the current scope and domain when a Host transaction started before the key moved.
 
 Existing RC installations need the [RC.3 schema upgrade](docs/guides/USAGE_GUIDE.md#rc3-schema-upgrade).
 

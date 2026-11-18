@@ -197,6 +197,50 @@ final class TranslationWriteIntegrityTest extends MysqlIntegrationTestCase
         }
     }
 
+    public function testTranslationWritesRefreshTheCurrentDomainAfterAKeyMoves(): void
+    {
+        $this->pdo()->exec("INSERT INTO maa_i18n_domains (code, name) VALUES ('next', 'Next')");
+        $this->pdo()->exec("INSERT INTO maa_i18n_domain_scopes (scope_code, domain_code) VALUES ('ct', 'next')");
+        $keyId = $this->createKey('ct', 'home', 'moving');
+        $pdo = self::newConnection();
+        $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        $writer = $this->writerOn($pdo);
+        $keys = new MysqlTranslationKeyRepository($pdo);
+        $pdo->beginTransaction();
+
+        try {
+            self::assertSame('home', $keys->getById($keyId)?->domain);
+            $this->renameKey($keyId, 'ct', 'next', 'moving');
+            $writer->upsertTranslation(new UpsertTranslationCommand('ar', $keyId, 'stored', null));
+            self::assertTrue($pdo->commit());
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
+
+        self::assertSame('stored', $this->reader->getValue('ar', 'ct', 'next', 'moving'));
+        self::assertSame(1, $this->summary->getRow('ct', 'next', 'ar')['translated_count'] ?? null);
+        self::assertNull($this->summary->getRow('ct', 'home', 'ar'));
+
+        $pdo->beginTransaction();
+        try {
+            self::assertSame('next', $keys->getById($keyId)->domain);
+            $this->renameKey($keyId, 'ct', 'home', 'moving');
+            $writer->deleteTranslation('ar', $keyId);
+            self::assertTrue($pdo->commit());
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
+
+        self::assertNull($this->reader->getValue('ar', 'ct', 'home', 'moving'));
+        self::assertNull($this->summary->getRow('ct', 'home', 'ar'));
+        self::assertNull($this->summary->getRow('ct', 'next', 'ar'));
+        self::assertSame(0, $this->scalarInt('SELECT translated_count FROM maa_i18n_key_stats WHERE key_id=' . $keyId));
+    }
+
     private function writerOn(PDO $pdo): TranslationWriteService
     {
         $keys = new MysqlTranslationKeyRepository($pdo);

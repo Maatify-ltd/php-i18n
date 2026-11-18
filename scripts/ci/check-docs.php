@@ -347,6 +347,7 @@ $requiredDistributionPaths = [
     'schema/migrations/2026-10-02-translation-type.sql',
     'tests/Fixtures/Schema/schema.pre-s1.i18n.sql',
     'tests/Integration/TranslationTypeMigrationTest.php',
+    'tests/Integration/ExactLanguageWritesMigrationTest.php',
 ];
 $requiredComposerExclusions = [
     '/dcos',
@@ -354,6 +355,7 @@ $requiredComposerExclusions = [
     '/schema/migrations/2026-10-02-translation-type.sql',
     '/tests/Fixtures/Schema/schema.pre-s1.i18n.sql',
     '/tests/Integration/TranslationTypeMigrationTest.php',
+    '/tests/Integration/ExactLanguageWritesMigrationTest.php',
 ];
 $composerData = json_decode((string) file_get_contents('composer.json'), true);
 $composerExclusions = $composerData['archive']['exclude'] ?? [];

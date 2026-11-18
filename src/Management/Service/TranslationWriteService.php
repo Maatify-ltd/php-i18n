@@ -179,8 +179,8 @@ final readonly class TranslationWriteService
     public function upsertTranslation(UpsertTranslationCommand $command): int
     {
         return $this->tx->run(function () use ($command): int {
-
-            if ($this->keyRepository->getById($command->keyId) === null) {
+            // Keep the current key placement stable through the counter refresh.
+            if ($this->keyRepository->getById($command->keyId, LockModeEnum::SHARE) === null) {
                 throw new TranslationKeyNotFoundException($command->keyId);
             }
 
@@ -203,6 +203,7 @@ final readonly class TranslationWriteService
                 $this->missingCounter->onTranslationCreated(
                     $command->languageCode,
                     $command->keyId,
+                    LockModeEnum::SHARE,
                 );
             }
 
@@ -236,7 +237,7 @@ final readonly class TranslationWriteService
 
         $this->tx->run(function () use ($exactCode, $keyId): void {
 
-            if ($this->keyRepository->getById($keyId) === null) {
+            if ($this->keyRepository->getById($keyId, LockModeEnum::SHARE) === null) {
                 throw new TranslationKeyNotFoundException($keyId);
             }
 
@@ -248,6 +249,7 @@ final readonly class TranslationWriteService
                 $this->missingCounter->onTranslationDeleted(
                     $exactCode,
                     $keyId,
+                    LockModeEnum::SHARE,
                 );
             }
         });
