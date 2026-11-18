@@ -55,7 +55,7 @@ It deliberately does **not**:
 | Scope | `maa_i18n_scopes` | unique `code`; appended display order; code change only while unused |
 | Domain | `maa_i18n_domains` | unique `code`; appended display order; code change only while unused |
 | Domain-scope assignment | `maa_i18n_domain_scopes` | unique `(scope_code, domain_code)` |
-| Translation key | `maa_i18n_keys` | unique `(scope, domain, key_part)`; usable only inside an assigned, active `(scope, domain)` under `STRICT` policy |
+| Translation key | `maa_i18n_keys` | unique `(scope, domain, key_part)`. The configured [governance policy](#56-governance-policy-and-derived-state-services) applies when creating or renaming a key |
 | Translation | `maa_i18n_translations` | unique `(key_id, language_code_identity)`; at most one value per exact language scope of a key; nullable `type` is not identity |
 | Domain language summary (derived) | `maa_i18n_domain_language_summary` | rebuildable from keys + translations; maintained synchronously |
 | Key statistics (derived) | `maa_i18n_key_stats` | exactly one row per key; rebuildable |
@@ -118,6 +118,8 @@ Fail-soft: no exception for a data miss.
 
 Constructors: `TranslationReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface)`; `TranslationDomainReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface, I18nGovernancePolicyService)`.
 
+Domain reads apply the configured governance policy. Deactivating a scope or domain preserves existing keys and translations. A domain read that sees the inactive scope or domain returns an empty result. Single-key reads can still retrieve an exact stored translation.
+
 When the built-in MySQL repositories share one PDO connection, point reads obtain the exact key identity and translation in one statement, and domain reads include the configured governance rules in the same statement as the key and translation. Under `READ COMMITTED` and `REPEATABLE READ`, MySQL reads both from the same snapshot, including inside a Host transaction. `getValue` returns only the value, and `getTranslation` also returns the type. Custom repositories can implement `ExactTranslationReadRepositoryInterface` for joined key and translation reads or `GovernedDomainReadRepositoryInterface` to include compatible governance sources. Hosts using custom split repositories own the consistent snapshot across those sources.
 
 ### 5.2 Translation writes (`Management\Service\TranslationWriteService`)
@@ -127,7 +129,7 @@ Constructor: `(TransactionRunnerInterface, TranslationKeyRepositoryInterface, Tr
 | Method | Result | Throws |
 |---|---|---|
 | `createKey(CreateKeyCommand): int` | id of the new key | `ScopeNotAllowedException`, `DomainNotAllowedException`, `DomainScopeViolationException`, `TranslationKeyAlreadyExistsException`, `TranslationKeyCreateFailedException` |
-| `renameKey(RenameKeyCommand): void` | renames and/or moves a key to another assigned `(scope, domain)`; id and translations are preserved | governance exceptions above, `TranslationKeyNotFoundException`, `TranslationKeyAlreadyExistsException` |
+| `renameKey(RenameKeyCommand): void` | renames and/or moves a key to a target allowed by the configured governance policy and preserves the id and translations | governance exceptions above, `TranslationKeyNotFoundException`, `TranslationKeyAlreadyExistsException` |
 | `updateKeyDescription(int $keyId, string $description): void` | updates the description; a repeated value is a successful no-op | `I18nInvalidArgumentException` for a non-positive keyId, `TranslationKeyNotFoundException` |
 | `upsertTranslation(UpsertTranslationCommand): int` | id of the translation row; a new row refreshes derived layers, while a type-only update does not alter counts | `TranslationKeyNotFoundException`, `TranslationUpsertFailedException` |
 | `deleteTranslation(?string $languageCode, int $keyId): void` | deletes the exact scope's row if present; deleting a missing row is a no-op | `I18nInvalidArgumentException` for a non-positive keyId, `InvalidLanguageCodeException`, `TranslationKeyNotFoundException` |
@@ -211,7 +213,7 @@ Classification: I18n is **In Scope** for Operational Read / Reporting because it
 
 | Type | Role |
 |---|---|
-| `Service\I18nGovernancePolicyService(ScopeRepositoryInterface, DomainRepositoryInterface, DomainScopeRepositoryInterface, I18nPolicyModeEnum $mode = STRICT)` | `assertScopeAndDomainAllowed(string $scope, string $domain): void`, `assertScopeAndDomainAllowedForUsage(...)` (takes SHARE locks; requires an active transaction), `isScopeAndDomainReadable(...): bool`. `STRICT` (default and the production setting) requires an existing, active scope, an existing, active domain and an assignment; `PERMISSIVE` lets a physically missing scope or domain pass but still enforces `is_active` and the assignment when both rows exist (migration and development only). Throws `ScopeNotAllowedException`, `DomainNotAllowedException`, `DomainScopeViolationException` |
+| `Service\I18nGovernancePolicyService(ScopeRepositoryInterface, DomainRepositoryInterface, DomainScopeRepositoryInterface, I18nPolicyModeEnum $mode = STRICT)` | `assertScopeAndDomainAllowed(string $scope, string $domain): void`, `assertScopeAndDomainAllowedForUsage(...)` (takes SHARE locks; requires an active transaction), `isScopeAndDomainReadable(...): bool`. `STRICT` (default and the production setting) requires an existing, active scope, an existing, active domain and an assignment. `PERMISSIVE` allows a missing scope or domain during migration and development. It rejects any known inactive scope or domain and requires an assignment when both rows exist. Throws `ScopeNotAllowedException`, `DomainNotAllowedException`, `DomainScopeViolationException` |
 | `Service\MissingCounterService(DomainLanguageSummaryRepositoryInterface, TranslationKeyRepositoryInterface, KeyStatsRepositoryInterface)` | Maintains derived layers inside the caller's transaction: `onKeyCreated`, `onTranslationCreated`, `onTranslationDeleted`, `onLanguageCodeRekeyed`, `onKeyMoved`. Key IDs must be positive; invalid IDs throw `I18nInvalidArgumentException` before repository access. Translation and language-code re-key callbacks validate codes through `LanguageCode`; `null` in nullable translation callbacks is the exact unlocalized scope, valid codes pass through unchanged, and invalid codes throw `InvalidLanguageCodeException` before repository access. It is composed into `TranslationWriteService`. The legacy `onKeyDeleted` callback returns without updating summaries when the key is already absent. Use the full rebuild after an authorized direct deletion |
 | `Management\Service\I18nStatsRebuilder(TransactionRunnerInterface, DomainLanguageSummaryRepositoryInterface, KeyStatsRepositoryInterface)` | `fullRebuild(): void` clears and rebuilds both derived tables from keys and translations in one transaction (SQL-driven, idempotent). Operational recovery only |
 

@@ -57,7 +57,7 @@ example_expect(
 $core->assignments->assign('web', 'home');
 $core->scopes->setActive($webId, false);
 example_expect_throws(
-    'a key in an inactive scope is refused',
+    'creating a key in an inactive scope is refused',
     ScopeNotAllowedException::class,
     static fn() => $core->writer->createKey(new CreateKeyCommand('web', 'home', 'title')),
 );

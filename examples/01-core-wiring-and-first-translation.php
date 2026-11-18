@@ -80,7 +80,7 @@ $writer = new TranslationWriteService($transactions, $keyRepository, $translatio
 $reader = new TranslationReadService($keyRepository, $translationRepository);
 $domainReader = new TranslationDomainReadService($keyRepository, $translationRepository, $policy);
 
-// 4. Governance first: a key can only exist inside an assigned (scope, domain).
+// 4. In STRICT mode, creating a key requires an active scope and domain with an assignment.
 $scopes->create(new CreateScopeCommand('web', 'Website'));
 $domains->create(new CreateDomainCommand('home', 'Home page'));
 $assignments->assign('web', 'home');

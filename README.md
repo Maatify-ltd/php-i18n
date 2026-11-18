@@ -37,7 +37,7 @@ Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At prepa
 
 ## Key Features
 
-- **Governed structured keys:** a key is `scope.domain.key_part` and can only exist inside an active, assigned `(scope, domain)`.
+- **Governed structured keys:** keys use `scope.domain.key_part`. The default `STRICT` policy requires an active scope, an active domain and an assignment for key creation, key renames and domain reads. See the [governance contract](I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services).
 - **Exact language scopes:** reads and writes address one exact `language_code` (or `NULL`, the unlocalized scope). No fallback, default or wildcard inside I18n; fallback is Host policy.
 - **Fail-soft reads, fail-hard writes:** a runtime miss returns `null` or an empty DTO; a write violating governance throws a typed exception.
 - **Synchronous derived state:** per-domain, per-language summary and per-key counters are updated in the same transaction and are rebuildable.
@@ -119,6 +119,7 @@ An overview only. The complete inventory (signatures, DTO fields, exceptions, so
 ## Critical Runtime Behavior
 
 - **Exact scope:** `getValue('ar', ...)` reads `ar` only. `null` reads the unlocalized scope only. A miss never retries elsewhere.
+- **Domain visibility:** deactivating a scope or domain leaves stored keys and translations intact. Domain reads return an empty result when they see the inactive scope or domain. A single-key exact read can still return a stored translation.
 - **Empty is a value:** the empty string is an authoritative translation, not a miss.
 - **Type is opaque metadata:** any valid non-null string is an exact consumer-defined token. The Package defines no type vocabulary and does not assign behavior, render or sanitize values.
 - **Codes are not normalized:** `'ar'` and `'AR'` are different; a code must be 1-16 characters and not whitespace-only. Whether a code is a real language is Host policy.

@@ -12,7 +12,8 @@ use Maatify\I18n\ValueObject\LanguageCode;
 
 /**
  * Provides fail-soft exact-scope translation reads. Invalid codes and misses
- * return `null`; repository storage failures propagate unchanged.
+ * return `null`. Repository storage failures propagate unchanged. Single-key
+ * reads use the stored key and translation independently of domain governance.
  */
 final readonly class TranslationReadService
 {

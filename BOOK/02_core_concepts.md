@@ -24,12 +24,12 @@ scope . domain . key_part
 ### 1. Scope
 The high-level consumer or boundary of the translation.
 *   **Examples:** `admin`, `client`, `system`, `api`, `email`.
-*   **Constraint:** A translation key cannot exist unless its `scope` is defined in `maa_i18n_scopes` and is active.
+*   **Strict policy:** Key creation and renames require an existing, active target scope.
 
 ### 2. Domain
 The functional area or feature set within a scope.
 *   **Examples:** `auth`, `billing`, `products`, `errors`.
-*   **Constraint:** A translation key cannot exist unless its `domain` is defined in `maa_i18n_domains` and is mapped to the `scope`.
+*   **Strict policy:** Key creation and renames require an existing, active target domain assigned to the target scope. See the [policy modes](../I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services).
 
 ### 3. Key Part
 The specific label or message identifier.

@@ -44,7 +44,7 @@ $translation = $readService->getTranslation(
 // TranslationValueDTO: ['value' => 'Log In', 'type' => null] or null on an exact miss.
 ```
 
-`getValue()` remains a value-only compatibility read. `getTranslation()` returns the value and optional type together. Both use the same exact-scope and fail-soft rules.
+`getValue()` remains a value-only compatibility read. `getTranslation()` returns the value and optional type together. Both use the same exact-scope and fail-soft rules. Deactivation preserves the stored translation, so single-key reads can still return it. The configured governance policy applies to bulk domain reads.
 
 The built-in MySQL repository reads the structured key identity and its exact translation in one statement. Under `READ COMMITTED` and `REPEATABLE READ`, this keeps the key identity and translation consistent during a concurrent move.
 
