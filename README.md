@@ -8,8 +8,8 @@
   <img alt="Maatify.dev" src="https://www.maatify.dev/company-profile/maatify_logo_dark.svg">
 </picture>
 
-[![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2)
-[![Version](https://img.shields.io/badge/Version-1.0.0--rc.2-blue)](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2)
+[![Status](https://img.shields.io/badge/Status-Release%20Candidate-blue)](#installation)
+[![Version](https://img.shields.io/badge/Artifact-1.0.0--rc.3-blue)](#installation)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF)](composer.json)
 [![License](https://img.shields.io/badge/License-Proprietary-green)](LICENSE)
 [![PHPStan](https://img.shields.io/badge/PHPStan-Level%20Max-4E8CAE)](phpstan.neon)
@@ -18,7 +18,6 @@
 [![Monthly Downloads](https://img.shields.io/packagist/dm/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
 [![Total Downloads](https://img.shields.io/packagist/dt/maatify/php-i18n)](https://packagist.org/packages/maatify/php-i18n)
 [![Maatify Ecosystem](https://img.shields.io/badge/Maatify-Ecosystem-blueviolet)](https://github.com/Maatify-ltd)
-[![Install](https://img.shields.io/badge/Install-1.0.0--rc.2%40RC-blue)](#installation)
 
 [![Usage Guide](https://img.shields.io/badge/Docs-Usage%20Guide-informational)](docs/guides/USAGE_GUIDE.md)
 [![Examples](https://img.shields.io/badge/Docs-Examples-informational)](examples/)
@@ -30,7 +29,7 @@
 
 `maatify/php-i18n` is a governed, database-driven translation layer for PHP: structured keys, exact-scope translation values in MySQL, fail-soft runtime reads, management reads for admin screens, and operational coverage facts. Language identity stays with the Host: I18n stores an exact, nullable language code and never applies a fallback.
 
-Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). No Published Stable release or Stable support line exists. See [Installation](#installation).
+Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At preparation, Release Candidate [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was available on Packagist. No Published Stable release or Stable support line existed at preparation. See [Installation](#installation).
 
 </div>
 
@@ -55,20 +54,20 @@ Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://pac
 | PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` |
 | Extensions | `ext-mbstring`, `ext-pdo`, `ext-pdo_mysql` |
 | `maatify/exceptions` | `^1.1` |
-| `maatify/php-persistence` | `1.0.0-rc.1` |
+| `maatify/php-persistence` | `1.0.0-rc.2` |
 | `maatify/shared-common` | `^1.0` |
 | Database | MySQL (InnoDB, `utf8mb4`); MySQL 8.4 is the version exercised by the package verification |
 | Optional | `php-di/php-di` and `psr/container` only for the optional PHP-DI adapter (`suggest`) |
 
 ## Installation
 
-Run this command in your Composer project to install the published RC and its Persistence dependency. Both RC allowances are explicit so Composer can retain `minimum-stability: stable`.
+The exact command below resolves once `1.0.0-rc.3` is published on Packagist. Explicit RC allowances keep `minimum-stability: stable`. For the version available at preparation, see the [`1.0.0-rc.2` installation guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.2/docs/guides/USAGE_GUIDE.md).
 
 ```bash
-composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC
+composer require maatify/php-i18n:1.0.0-rc.3@RC maatify/php-persistence:1.0.0-rc.2@RC
 ```
 
-For `1.0.0-rc.2`, create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
+For a fresh installation, create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
 
 ## Quick Usage
 
@@ -171,7 +170,7 @@ Maintained examples cover every material capability and run against a disposable
 | Examples | every example smoke-executed |
 | Release artifact verification | [Archive verification procedure](docs/guides/RELEASE_ARTIFACT_VERIFICATION.md) |
 | Composer audit and platform requirements | enforced |
-| Release | Published Release Candidate `1.0.0-rc.2`. See [CHANGELOG.md](CHANGELOG.md) |
+| Release artifact | `1.0.0-rc.3` was unpublished at preparation. See [CHANGELOG.md](CHANGELOG.md) |
 
 ## Development and Testing
 

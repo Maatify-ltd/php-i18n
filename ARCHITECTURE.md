@@ -113,7 +113,7 @@ The package utilizes a **Strong Consistency** model.
 ## 4. Dependencies
 
 *   **Internal:** none on language data. No language registry repository, service, DTO or exception; no FK/JOIN to any language table.
-*   **External:** PDO (Database), `maatify/shared-common` (Clock), `maatify/exceptions`, `maatify/php-persistence` `1.0.0-rc.1` (transactions, ordering, pagination).
+*   **External:** PDO (Database), `maatify/shared-common` (Clock), `maatify/exceptions`, `maatify/php-persistence` `1.0.0-rc.2` (transactions, ordering, pagination).
 *   **Optional:** `php-di/php-di` + `psr/container` only for `Adapter/PhpDi/I18nBindings` (Composer `suggest`; the Core never loads them).
 
 ## 5. Host Responsibilities

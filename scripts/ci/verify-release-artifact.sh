@@ -2,7 +2,7 @@
 set -euo pipefail
 
 root="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
-target=1.0.0-rc.2
+target=1.0.0-rc.3
 sha="$(git -C "${root}" rev-parse --verify "${1:-HEAD}^{commit}")"
 work="$(mktemp -d)"
 finish() {
@@ -28,11 +28,16 @@ for format in git composer; do
         schema/schema.i18n.sql schema/translation-key-preview.sql src/Management/Service/TranslationKeyPreviewService.php; do
         test -f "${artifact}/${required}" || { echo "${format}: missing ${required}" >&2; exit 1; }
     done
-    for excluded in .git vendor composer.lock dcos docs/decisions schema/migrations/2026-10-02-translation-type.sql \
+    for excluded in .git vendor composer.lock consumer-verification/vendor consumer-verification/composer.lock \
+        dcos docs/decisions schema/migrations/2026-10-02-translation-type.sql \
         tests/Fixtures/Schema/schema.pre-s1.i18n.sql tests/Integration/TranslationTypeMigrationTest.php; do
         test ! -e "${artifact}/${excluded}" || { echo "${format}: unexpected ${excluded}" >&2; exit 1; }
     done
-    unexpected="$(find "${artifact}" -name '.env' -o -name '.env.*' -o -name auth.json -o -name '*.pem' -o -name '*.key')"
+    unexpected="$(find "${artifact}" \
+        -name '.env' -o -name '.env.*' -o -name auth.json -o -name '*.pem' -o -name '*.key' \
+        -o -name .idea -o -name .vscode -o -name .DS_Store -o -name Thumbs.db \
+        -o -name .phpunit.cache -o -name .phpunit.result.cache -o -name .phpstan.cache -o -name .php-cs-fixer.cache \
+        -o -name '*.tmp' -o -name '*.patch')"
     test -z "${unexpected}" || { printf '%s: unexpected files\n%s\n' "${format}" "${unexpected}" >&2; exit 1; }
     cmp "${work}/source/composer.json" "${artifact}/composer.json"
     for document in README.md CHANGELOG.md SECURITY.md llms.txt I18N_PACKAGE_REFERENCE.md docs/guides/USAGE_GUIDE.md; do
@@ -42,3 +47,18 @@ for format in git composer; do
 done
 
 bash "${work}/source/scripts/ci/check-docs.sh"
+
+# Confirm that Composer also discards files created during local development.
+for fixture in .env consumer-verification/.env.local auth.json consumer-verification/auth.json \
+    fixture.pem consumer-verification/fixture.key .idea/workspace.xml .vscode/settings.json \
+    .DS_Store Thumbs.db .phpunit.cache/results .phpunit.result.cache .phpstan.cache .php-cs-fixer.cache \
+    local.tmp local.patch vendor/fixture composer.lock consumer-verification/vendor/fixture consumer-verification/composer.lock; do
+    path="${work}/source/${fixture}"
+    mkdir -p "$(dirname "${path}")"
+    (set -o noclobber; printf '{}\n' > "${path}")
+done
+composer --no-plugins --no-scripts --working-dir="${work}/source" archive --format=tar --dir="${work}" --file=composer-local
+mkdir "${work}/composer-local"
+tar -xf "${work}/composer-local.tar" -C "${work}/composer-local"
+diff -qr "${work}/composer" "${work}/composer-local"
+printf '[release-artifact] Composer archive excludes local development files\n'

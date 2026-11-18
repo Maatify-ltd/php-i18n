@@ -1,6 +1,6 @@
 # Published Artifact Verification
 
-Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. The example targets the published `v1.0.0-rc.2`. To verify another version, update both `tag` and `reference` before running. For `v1.0.0-rc.2`, the procedure adds the exact Persistence RC allowance to the consumer root and keeps minimum stability at `stable`.
+Run this procedure with a supported PHP runtime, Composer, Git, curl, tar, diff, and jq. Use a checkout containing the exact release tag and a trusted executable search path. The example targets the published `v1.0.0-rc.2`. To verify another version, update both `tag` and `reference` before running. For the release candidates that require `maatify/php-persistence`, the procedure reads the exact allowed Persistence RC from the tagged manifest and keeps minimum stability at `stable`.
 
 ```bash
 set -eu
@@ -32,8 +32,16 @@ isolated_composer --version > "$work/composer-version.txt"
 isolated_composer config --list --source > "$work/composer-config.txt"
 printf '%s\n' 'Effective install override: --prefer-install=dist' >> "$work/composer-config.txt"
 requirements=("$package:${tag#v}@RC")
-if [ "$tag" = v1.0.0-rc.2 ]; then
-  requirements+=("maatify/php-persistence:1.0.0-rc.1@RC")
+persistence_constraint=$(jq -er '.require["maatify/php-persistence"] // ""' "$work/expected/composer.json")
+if [ -n "$persistence_constraint" ]; then
+  persistence_version=${persistence_constraint#>=}
+  persistence_version=${persistence_version%% *}
+  if [[ ! "$persistence_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$ ]] ||
+     [[ "$persistence_constraint" != ">=$persistence_version <=$persistence_version" ]]; then
+    printf 'Expected an exact Persistence RC constraint, got %s\n' "$persistence_constraint" >&2
+    exit 1
+  fi
+  requirements+=("maatify/php-persistence:$persistence_version@RC")
 fi
 printf 'Exact requirements: %s\n' "${requirements[*]}" >> "$work/composer-config.txt"
 isolated_composer require "${requirements[@]}" --prefer-install=dist --no-interaction \

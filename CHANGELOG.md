@@ -4,9 +4,19 @@ This file records package contents by release target. The package's initial cont
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The current Published Release Candidate is [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2), published on 2026-11-14. No Stable release or Stable support line exists.
+[`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was published on 2026-11-14. No Stable release or Stable support line existed at preparation of `1.0.0-rc.3`.
 
 ## [Unreleased]
+
+## [1.0.0-rc.3]
+
+### Changed
+
+- Pin Ordering, Pagination and Transactions to `maatify/php-persistence:1.0.0-rc.2`.
+
+### Fixed
+
+- Propagate Ordering storage failures as `I18nStorageException` with the original Persistence cause.
 
 ## [1.0.0-rc.2] - 2026-11-14
 

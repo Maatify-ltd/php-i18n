@@ -5,7 +5,7 @@ The canonical reference for the stable public, runtime and behavioral contract o
 - **Where to start:** [README.md](README.md) (overview, installation, quick usage) and [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) (integration walkthroughs).
 - **What this file does not own:** Composer facts (package identity, PHP and extension requirements, dependencies, autoload, scripts) are owned by [composer.json](composer.json). They are summarized here only where they explain runtime behavior.
 
-The API below describes the `1.0.0-rc.2` artifact. The previous release, `1.0.0-rc.1`, has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
+The API below describes the `1.0.0-rc.3` artifact. See the [`1.0.0-rc.2` Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.2/I18N_PACKAGE_REFERENCE.md) for that release.
 
 ## 1. Package Facts
 
@@ -13,7 +13,7 @@ The API below describes the `1.0.0-rc.2` artifact. The previous release, `1.0.0-
 |---|---|
 | Composer identity | `maatify/php-i18n` |
 | Root namespace | `Maatify\I18n\` (PSR-4, `src/`) |
-| Distribution state | Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). See [GitHub Pre-release](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2). No Published Stable release or Stable support line exists. |
+| Distribution state | Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At preparation, Release Candidate [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was available on Packagist. No Published Stable release or Stable support line existed at preparation. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
 | PHP | See the exact constraints in [composer.json](composer.json). |
 | Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
@@ -288,7 +288,7 @@ Command-repository mutation return contracts follow this matrix:
 |---|---|---|
 | Scope/domain/key `create` | `int` | generated row ID |
 | Scope/domain `updateMetadata`, `setActive`; key `updateDescription` | `bool` | whether the SQL update changed a row; Services lock/read first, so an unchanged value remains a successful no-op |
-| Scope/domain `moveToPosition` | `bool` | true for a successful move or no-op, false only for a missing target; a failed move on an existing target throws `I18nStorageException` |
+| Scope/domain `moveToPosition` | `bool` | true for a successful move or no-op, false only for a missing target; a zero-row move on an existing target or a Persistence Ordering execution failure raises `I18nStorageException`; thrown PDO errors propagate unchanged |
 | `DomainScopeRepositoryInterface::unassign` | `bool` | whether the exact mapping row was deleted |
 | `TranslationRepositoryInterface::deleteByLanguageAndKey` | `bool` | whether the exact translation row was deleted |
 
@@ -319,7 +319,7 @@ The Host authorizes these operations and controls which requests can use a previ
 
 ### 6.2 Exception catalog
 
-Every exception defined by the Package implements `Maatify\I18n\Exception\I18nExceptionInterface` (extends `Throwable`), extends a `maatify/exceptions` base through an abstract I18n category class, and carries a stable `I18nErrorCodeEnum` code. External throwables, notably `PDOException`, propagate unchanged and are not forced to implement the marker.
+Every exception defined by the Package implements `Maatify\I18n\Exception\I18nExceptionInterface` (extends `Throwable`), extends a `maatify/exceptions` base through an abstract I18n category class, and carries a stable `I18nErrorCodeEnum` code. Thrown `PDOException` values propagate unchanged. The handling of Persistence Ordering execution failures is defined in [§6.3](#63-storage-failure-contract).
 
 | Exception | Category | Error code | Raised by |
 |---|---|---|---|
@@ -347,7 +347,7 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ### 6.3 Storage failure contract
 
-`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. A failed ordering move also raises `I18nStorageException` when the target row still exists. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
+`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state reported by the I18n PDO gateway becomes `I18nStorageException`. On scope and domain Ordering reads and moves, I18n wraps `OrderingExecutionException` as `I18nStorageException` and preserves the original cause. A move that reports zero changed rows also raises `I18nStorageException` when the target row still exists. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
 
 ## 7. Transactions and Concurrency
 

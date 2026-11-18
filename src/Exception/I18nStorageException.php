@@ -9,15 +9,17 @@ use Maatify\I18n\Enum\I18nErrorCodeEnum;
 
 /**
  * A non-throwing PDO failure during prepare, execute or fetch, or a failed
- * ordering move whose target row still exists. Callers must propagate this
- * storage error. Thrown PDOExceptions propagate unchanged.
+ * ordering move whose target row still exists. A Persistence Ordering
+ * execution failure is retained as the cause. Thrown PDOExceptions propagate
+ * unchanged.
  */
 final class I18nStorageException extends I18nSystemException
 {
-    public function __construct(string $operation)
+    public function __construct(string $operation, ?\Throwable $previous = null)
     {
         parent::__construct(
             sprintf('I18n storage failure (%s).', $operation),
+            previous: $previous,
         );
     }
 

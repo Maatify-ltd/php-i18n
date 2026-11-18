@@ -82,7 +82,7 @@ final class PhpDiOptionalIntegrationTest extends TestCase
         }
 
         self::assertArrayHasKey('maatify/php-persistence', $require);
-        self::assertSame('>=1.0.0-rc.1 <=1.0.0-rc.1', $require['maatify/php-persistence']);
+        self::assertSame('>=1.0.0-rc.2 <=1.0.0-rc.2', $require['maatify/php-persistence']);
     }
 
     public function testCoreSourceNeverReferencesPhpDiOrPsrContainer(): void

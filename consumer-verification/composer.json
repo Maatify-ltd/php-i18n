@@ -18,7 +18,7 @@
     "require": {
         "php": "^8.4",
         "maatify/php-i18n": "dev-consumer-verification",
-        "maatify/php-persistence": "1.0.0-rc.1@RC"
+        "maatify/php-persistence": "1.0.0-rc.2@RC"
     },
     "config": {
         "allow-plugins": false,
