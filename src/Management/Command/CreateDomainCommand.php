@@ -27,7 +27,7 @@ final readonly class CreateDomainCommand
             throw I18nInvalidArgumentException::emptyField('code');
         }
 
-        if (mb_strlen($code) > 64) {
+        if (mb_strlen($code, 'UTF-8') > 64) {
             throw I18nInvalidArgumentException::tooLong('code', 64);
         }
 
@@ -35,7 +35,7 @@ final readonly class CreateDomainCommand
             throw I18nInvalidArgumentException::emptyField('name');
         }
 
-        if (mb_strlen($name) > 128) {
+        if (mb_strlen($name, 'UTF-8') > 128) {
             throw I18nInvalidArgumentException::tooLong('name', 128);
         }
     }

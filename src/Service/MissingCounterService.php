@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Maatify\I18n\Service;
 
+use Maatify\I18n\Enum\LockModeEnum;
 use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\KeyStatsRepositoryInterface;
+use Maatify\I18n\Repository\SerializedDomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\Exception\InvalidLanguageCodeException;
@@ -22,6 +24,14 @@ final readonly class MissingCounterService
         private TranslationKeyRepositoryInterface $keyRepository,
         private KeyStatsRepositoryInterface $keyStatsRepository,
     ) {}
+
+    /** Hold the repository's summary-write lock before beginning the mutation. */
+    public function lockSummaryWrites(): void
+    {
+        if ($this->summaryRepository instanceof SerializedDomainLanguageSummaryRepositoryInterface) {
+            $this->summaryRepository->lockSummaryWrites();
+        }
+    }
 
     /**
      * Adds the key to existing summary rows and creates its zeroed key-stats
@@ -81,6 +91,7 @@ final readonly class MissingCounterService
      * repository access, then rebuild that summary and increment the key's
      * translated count. Null is unlocalized; valid non-null codes stay exact
      * without normalization. A missing key raises TranslationKeyNotFoundException.
+     * Pass a locking mode inside a transaction to read the current key placement.
      *
      * @throws TranslationKeyNotFoundException
      * @throws InvalidLanguageCodeException
@@ -89,11 +100,12 @@ final readonly class MissingCounterService
     public function onTranslationCreated(
         ?string $languageCode,
         int $keyId,
+        LockModeEnum $keyLock = LockModeEnum::NONE,
     ): void {
         $this->assertPositiveKeyId($keyId);
         LanguageCode::fromNullable($languageCode);
 
-        $key = $this->keyRepository->getById($keyId);
+        $key = $this->keyRepository->getById($keyId, $keyLock);
 
         if ($key === null) {
             throw new TranslationKeyNotFoundException($keyId);
@@ -115,6 +127,7 @@ final readonly class MissingCounterService
      * repository access, then rebuild that summary and decrement the key's
      * translated count. Null is unlocalized; valid non-null codes stay exact
      * without normalization. A missing key remains a fail-soft no-op.
+     * Pass a locking mode inside a transaction to read the current key placement.
      *
      * @throws InvalidLanguageCodeException
      * @throws I18nInvalidArgumentException when keyId is not positive
@@ -122,11 +135,12 @@ final readonly class MissingCounterService
     public function onTranslationDeleted(
         ?string $languageCode,
         int $keyId,
+        LockModeEnum $keyLock = LockModeEnum::NONE,
     ): void {
         $this->assertPositiveKeyId($keyId);
         LanguageCode::fromNullable($languageCode);
 
-        $key = $this->keyRepository->getById($keyId);
+        $key = $this->keyRepository->getById($keyId, $keyLock);
 
         if ($key === null) {
             return; // fail-soft

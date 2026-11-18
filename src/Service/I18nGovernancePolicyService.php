@@ -13,6 +13,7 @@ use Maatify\I18n\Exception\DomainScopeViolationException;
 use Maatify\I18n\Exception\ScopeNotAllowedException;
 use Maatify\I18n\Repository\DomainRepositoryInterface;
 use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
+use Maatify\I18n\Repository\GovernedDomainReadRepositoryInterface;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
 
 /**
@@ -26,6 +27,14 @@ final readonly class I18nGovernancePolicyService
         private DomainScopeRepositoryInterface $domainScopeRepository,
         private I18nPolicyModeEnum $mode = I18nPolicyModeEnum::STRICT,
     ) {}
+
+    /** Return the policy mode only when the read can include all configured governance sources. @internal */
+    public function joinedReadMode(GovernedDomainReadRepositoryInterface $reader): ?I18nPolicyModeEnum
+    {
+        return $reader->canReadGovernanceFrom($this->scopeRepository, $this->domainRepository, $this->domainScopeRepository)
+            ? $this->mode
+            : null;
+    }
 
     /**
      * STRICT: throws domain-specific policy exceptions

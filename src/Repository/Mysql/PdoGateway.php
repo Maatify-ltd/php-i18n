@@ -125,13 +125,7 @@ final readonly class PdoGateway
     public function scalarInt(string $sql, array $params, string $operation): int
     {
         $stmt = $this->run($sql, $params, $operation);
-        $value = $stmt->fetchColumn();
-
-        if (!is_int($value) && !(is_string($value) && is_numeric($value))) {
-            throw new I18nStorageException($operation . ':scalar');
-        }
-
-        return (int) $value;
+        return Row::parseInt($stmt->fetchColumn(), $operation . ':scalar');
     }
 
     /**
@@ -154,11 +148,11 @@ final readonly class PdoGateway
     {
         $id = $this->pdo->lastInsertId();
 
-        if (!is_string($id) || !ctype_digit($id)) {
+        if (!is_string($id) || !ctype_digit($id) || ltrim($id, '0') === '') {
             throw new I18nStorageException($operation . ':lastInsertId');
         }
 
-        return (int) $id;
+        return Row::parseInt($id, $operation . ':lastInsertId');
     }
 
     /**

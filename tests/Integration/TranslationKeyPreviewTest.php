@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Maatify\I18n\Tests\Integration;
 
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
+use Maatify\I18n\Exception\I18nStorageException;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
@@ -30,7 +32,7 @@ final class TranslationKeyPreviewTest extends MysqlIntegrationTestCase
     public function testRoundTripWithExactTargetsAndExpiry(): void
     {
         $clock = new PreviewTestClock();
-        $service = new TranslationKeyPreviewService($this->pdo(), $clock);
+        $service = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($this->pdo()), $clock);
         $expiry = $clock->now()->modify('+10 minutes');
         $created = $service->activate([
             new PreviewTarget('web', 'account', 'profile.name'),
@@ -62,7 +64,7 @@ final class TranslationKeyPreviewTest extends MysqlIntegrationTestCase
     {
         $clock = new PreviewTestClock();
         $pdo = $this->pdo();
-        $service = new TranslationKeyPreviewService($pdo, $clock);
+        $service = new TranslationKeyPreviewService(pdo: $pdo, clock: $clock);
         $targets = [new PreviewTarget('web', 'checkout')];
         $expiresAt = $clock->now()->modify('+5 minutes');
         $saved = $service->activate($targets, $expiresAt);
@@ -84,10 +86,49 @@ final class TranslationKeyPreviewTest extends MysqlIntegrationTestCase
         self::assertNull($service->getActive($saved->id));
     }
 
+    public function testGeneratedIdOverflowLeavesNoPreviewAndPreservesTheOuterTransaction(): void
+    {
+        $pdo = $this->pdo();
+        $outsideRange = PHP_INT_SIZE === 8 ? '9223372036854775808' : '2147483648';
+        $pdo->exec('ALTER TABLE maa_i18n_translation_key_previews AUTO_INCREMENT = ' . $outsideRange);
+
+        $clock = new PreviewTestClock();
+        $service = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($pdo), $clock);
+        $expiresAt = $clock->now()->modify('+5 minutes');
+
+        foreach ([false, true] as $outer) {
+            if ($outer) {
+                $pdo->beginTransaction();
+                $pdo->exec("INSERT INTO maa_i18n_scopes (code, name) VALUES ('kept', 'Kept')");
+            }
+
+            try {
+                try {
+                    $service->activate([new PreviewTarget('web', 'home')], $expiresAt);
+                    self::fail('Expected an unrepresentable preview identity to fail.');
+                } catch (I18nStorageException $failure) {
+                    self::assertSame('I18n storage failure (preview.activate:lastInsertId).', $failure->getMessage());
+                }
+
+                self::assertSame($outer, $pdo->inTransaction());
+                if ($outer) {
+                    self::assertTrue($pdo->commit());
+                }
+                self::assertSame(0, $this->scalarInt('SELECT COUNT(*) FROM maa_i18n_translation_key_previews'));
+            } finally {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+            }
+        }
+
+        self::assertSame(1, $this->scalarInt("SELECT COUNT(*) FROM maa_i18n_scopes WHERE code = 'kept'"));
+    }
+
     public function testRejectsInvalidActivation(): void
     {
         $clock = new PreviewTestClock();
-        $service = new TranslationKeyPreviewService($this->pdo(), $clock);
+        $service = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($this->pdo()), $clock);
 
         foreach ([[], [1 => new PreviewTarget('web', 'home')], ['home']] as $invalid) {
             try {

@@ -76,13 +76,7 @@ final readonly class I18nOperationalReadService
      */
     public function domainCoverage(string $scopeCode, string $languageCode): array
     {
-        if (LanguageCode::tryFromNullable($languageCode) === null) {
-            if (mb_strlen($languageCode) > LanguageCode::MAX_LENGTH) {
-                throw I18nInvalidArgumentException::tooLong('languageCode', LanguageCode::MAX_LENGTH);
-            }
-
-            throw I18nInvalidArgumentException::emptyField('languageCode');
-        }
+        LanguageCode::requireFilterCode($languageCode, 'languageCode');
 
         return $this->stats->domainCoverage($scopeCode, $languageCode);
     }

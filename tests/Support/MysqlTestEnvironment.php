@@ -53,12 +53,13 @@ final class MysqlTestEnvironment
      *
      * @throws PDOException
      */
-    public static function connect(array $credentials): PDO
+    public static function connect(array $credentials, bool $foundRows = false): PDO
     {
         return new PDO($credentials['dsn'], $credentials['user'], $credentials['pass'], [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES => false,
+            \Pdo\Mysql::ATTR_FOUND_ROWS => $foundRows,
         ]);
     }
 

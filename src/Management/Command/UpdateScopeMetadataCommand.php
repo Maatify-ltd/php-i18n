@@ -36,7 +36,7 @@ final readonly class UpdateScopeMetadataCommand
             throw I18nInvalidArgumentException::emptyField('name');
         }
 
-        if ($name !== null && mb_strlen($name) > 64) {
+        if ($name !== null && mb_strlen($name, 'UTF-8') > 64) {
             throw I18nInvalidArgumentException::tooLong('name', 64);
         }
     }

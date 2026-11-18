@@ -5,7 +5,7 @@ The canonical reference for the stable public, runtime and behavioral contract o
 - **Where to start:** [README.md](README.md) (overview, installation, quick usage) and [docs/guides/USAGE_GUIDE.md](docs/guides/USAGE_GUIDE.md) (integration walkthroughs).
 - **What this file does not own:** Composer facts (package identity, PHP and extension requirements, dependencies, autoload, scripts) are owned by [composer.json](composer.json). They are summarized here only where they explain runtime behavior.
 
-The API below describes the `1.0.0-rc.2` artifact. The previous release, `1.0.0-rc.1`, has its own [Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/I18N_PACKAGE_REFERENCE.md).
+The API below describes the `1.0.0-rc.3` artifact. See the [`1.0.0-rc.2` Package Reference](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.2/I18N_PACKAGE_REFERENCE.md) for that release.
 
 ## 1. Package Facts
 
@@ -13,10 +13,10 @@ The API below describes the `1.0.0-rc.2` artifact. The previous release, `1.0.0-
 |---|---|
 | Composer identity | `maatify/php-i18n` |
 | Root namespace | `Maatify\I18n\` (PSR-4, `src/`) |
-| Distribution state | Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). See [GitHub Pre-release](https://github.com/Maatify-ltd/php-i18n/releases/tag/v1.0.0-rc.2). No Published Stable release or Stable support line exists. |
+| Distribution state | Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At preparation, Release Candidate [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was available on Packagist. No Published Stable release or Stable support line existed at preparation. |
 | Form today | Standalone Composer package / standalone repository. Everything in this file applies to the repository root. |
 | PHP | See the exact constraints in [composer.json](composer.json). |
-| Persistence | Package-owned MySQL schema of seven core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
+| Persistence | Package-owned MySQL schema of eight core `maa_i18n_*` tables ([schema/schema.i18n.sql](schema/schema.i18n.sql)) through `PDO` |
 | Shared mechanics | Transactions, display ordering and pagination come from `maatify/php-persistence`; the clock contract comes from `maatify/shared-common`; exceptions extend `maatify/exceptions` |
 | Optional integration | PHP-DI adapter `Maatify\I18n\Adapter\PhpDi\I18nBindings`; `php-di/php-di` and `psr/container` are Composer `suggest` entries, never runtime requirements |
 
@@ -82,8 +82,8 @@ The language is an exact, nullable, Host-owned `language_code`.
 - `null` is the **exact unlocalized scope**. It is not a wildcard, a default or "all languages".
 - A non-null code is the **exact scope of that code**. Reading `'ar'` never returns an `'ar-EG'`, `'en'` or `null`-scope value; reading `null` never returns a language row.
 - **No fallback, default or wildcard** exists anywhere in the Package.
-- **No normalization:** codes are stored as given; the column collation is binary, so `'ar'` and `'AR'` are different identities.
-- **Technical validity only:** a non-null code must not be empty, must not be whitespace-only and must be at most 16 characters (`LanguageCode::MAX_LENGTH`). The exact supplied code is preserved; I18n never trims, lowercases or otherwise normalizes it. Whether the code names a real, active or supported language is Host policy and is never checked.
+- **No normalization:** codes are stored as given; MySQL compares codes using `utf8mb4_0900_bin` (NO PAD). `'ar'`, `'AR'`, and `'ar '` are distinct identities.
+- **Technical validity only:** a non-null code must not be empty, must not consist solely of Unicode whitespace and must be at most 16 UTF-8 characters (`LanguageCode::MAX_LENGTH`). The exact supplied code is preserved; I18n never trims, lowercases or otherwise normalizes it. Whether the code names a real, active or supported language is Host policy and is never checked.
 - **Invalid code:** writes and command construction throw `InvalidLanguageCodeException`; consumer reads (`TranslationReadService`, `TranslationDomainReadService`) are fail-soft and return `null` or an empty DTO. Repository storage failures propagate; they are never converted into misses ([section 6.3](#63-storage-failure-contract)).
 - **Empty value:** the empty string is a valid, authoritative translation value. It is not a missing translation.
 - **Identity:** `(key_id, language_code)` is unique and NULL-safe through the generated `language_code_identity` column.
@@ -118,7 +118,7 @@ Fail-soft: no exception for a data miss.
 
 Constructors: `TranslationReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface)`; `TranslationDomainReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface, I18nGovernancePolicyService)`.
 
-`getDomainValues` and `getDomainTranslations` read the translation of each key individually (N+1 by design); the Host is expected to cache the desired result. `getValue` remains value-only; `getTranslation` is the rich single-row read. None of these methods falls back or interprets `type`.
+When the built-in MySQL repositories share one PDO connection, point reads obtain the exact key identity and translation in one statement, and domain reads include the configured governance rules in the same statement as the key and translation. Under `READ COMMITTED` and `REPEATABLE READ`, MySQL reads both from the same snapshot, including inside a Host transaction. `getValue` returns only the value, and `getTranslation` also returns the type. Custom repositories can implement `ExactTranslationReadRepositoryInterface` for joined key and translation reads or `GovernedDomainReadRepositoryInterface` to include compatible governance sources. Hosts using custom split repositories own the consistent snapshot across those sources.
 
 ### 5.2 Translation writes (`Management\Service\TranslationWriteService`)
 
@@ -133,7 +133,7 @@ Constructor: `(TransactionRunnerInterface, TranslationKeyRepositoryInterface, Tr
 | `deleteTranslation(?string $languageCode, int $keyId): void` | deletes the exact scope's row if present; deleting a missing row is a no-op | `I18nInvalidArgumentException` for a non-positive keyId, `InvalidLanguageCodeException`, `TranslationKeyNotFoundException` |
 | `rekeyLanguageCode(string $oldCode, string $newCode): int` | number of re-keyed translations; `0` when both codes are equal | `InvalidLanguageCodeException`, `LanguageCodeAlreadyInUseException` |
 
-`rekeyLanguageCode` moves every translation of `$oldCode` to `$newCode`, recomputes the affected derived summary rows, and refuses (nothing merged, nothing lost) when `$newCode` already owns translations. The Host performs its own language rename in the same transaction ([section 7](#7-transactions-and-concurrency)).
+`rekeyLanguageCode` moves every translation of `$oldCode` to `$newCode`, recomputes the affected derived summary rows, and refuses (nothing merged, nothing lost) when `$newCode` already owns translations. The built-in MySQL repository checks the destination with a current read while holding write locks for both codes. The Host performs its own language rename in the same transaction ([section 7](#7-transactions-and-concurrency)).
 
 ### 5.3 Governance management (`Management\Service`)
 
@@ -212,7 +212,7 @@ Classification: I18n is **In Scope** for Operational Read / Reporting because it
 | Type | Role |
 |---|---|
 | `Service\I18nGovernancePolicyService(ScopeRepositoryInterface, DomainRepositoryInterface, DomainScopeRepositoryInterface, I18nPolicyModeEnum $mode = STRICT)` | `assertScopeAndDomainAllowed(string $scope, string $domain): void`, `assertScopeAndDomainAllowedForUsage(...)` (takes SHARE locks; requires an active transaction), `isScopeAndDomainReadable(...): bool`. `STRICT` (default and the production setting) requires an existing, active scope, an existing, active domain and an assignment; `PERMISSIVE` lets a physically missing scope or domain pass but still enforces `is_active` and the assignment when both rows exist (migration and development only). Throws `ScopeNotAllowedException`, `DomainNotAllowedException`, `DomainScopeViolationException` |
-| `Service\MissingCounterService(DomainLanguageSummaryRepositoryInterface, TranslationKeyRepositoryInterface, KeyStatsRepositoryInterface)` | Keeps the derived layers correct inside the caller's transaction: `onKeyCreated`, `onKeyDeleted`, `onTranslationCreated`, `onTranslationDeleted`, `onLanguageCodeRekeyed`, `onKeyMoved`. Key IDs must be positive; invalid IDs throw `I18nInvalidArgumentException` before repository access. Translation and language-code re-key callbacks validate codes through `LanguageCode`; `null` in nullable translation callbacks is the exact unlocalized scope, valid codes pass through unchanged, and invalid codes throw `InvalidLanguageCodeException` before repository access. It is composed into `TranslationWriteService`; call it directly only when you implement your own write path |
+| `Service\MissingCounterService(DomainLanguageSummaryRepositoryInterface, TranslationKeyRepositoryInterface, KeyStatsRepositoryInterface)` | Maintains derived layers inside the caller's transaction: `onKeyCreated`, `onTranslationCreated`, `onTranslationDeleted`, `onLanguageCodeRekeyed`, `onKeyMoved`. Key IDs must be positive; invalid IDs throw `I18nInvalidArgumentException` before repository access. Translation and language-code re-key callbacks validate codes through `LanguageCode`; `null` in nullable translation callbacks is the exact unlocalized scope, valid codes pass through unchanged, and invalid codes throw `InvalidLanguageCodeException` before repository access. It is composed into `TranslationWriteService`. The legacy `onKeyDeleted` callback returns without updating summaries when the key is already absent. Use the full rebuild after an authorized direct deletion |
 | `Management\Service\I18nStatsRebuilder(TransactionRunnerInterface, DomainLanguageSummaryRepositoryInterface, KeyStatsRepositoryInterface)` | `fullRebuild(): void` clears and rebuilds both derived tables from keys and translations in one transaction (SQL-driven, idempotent). Operational recovery only |
 
 ### 5.7 Commands (`Management\Command`)
@@ -231,7 +231,7 @@ Self-validating `final readonly` intents. Invalid input throws `I18nInvalidArgum
 
 ### 5.8 Criteria (`Management\Criteria`)
 
-All carry a `PageRequest $page = new PageRequest()`. Empty required codes and non-positive supplied ID filters throw `I18nInvalidArgumentException`. Language-code criteria accept only non-empty, non-whitespace exact codes up to 16 characters; they preserve case and the exact supplied value.
+All carry a `PageRequest $page = new PageRequest()`. Empty required codes and non-positive supplied ID filters throw `I18nInvalidArgumentException`. Language-code criteria accept valid UTF-8 non-empty, non-whitespace code strings up to 16 characters. List filters require a PHP list of code strings and allow an empty list. They preserve case and every character of the supplied code.
 
 | Criteria | Inputs |
 |---|---|
@@ -288,21 +288,25 @@ Command-repository mutation return contracts follow this matrix:
 |---|---|---|
 | Scope/domain/key `create` | `int` | generated row ID |
 | Scope/domain `updateMetadata`, `setActive`; key `updateDescription` | `bool` | whether the SQL update changed a row; Services lock/read first, so an unchanged value remains a successful no-op |
-| Scope/domain `moveToPosition` | `bool` | true for a successful move or no-op, false only for a missing target; a failed move on an existing target throws `I18nStorageException` |
+| Scope/domain `moveToPosition` | `bool` | true for a successful move or no-op, false only for a missing target; a zero-row move on an existing target or a Persistence Ordering execution failure raises `I18nStorageException`; thrown PDO errors propagate unchanged |
 | `DomainScopeRepositoryInterface::unassign` | `bool` | whether the exact mapping row was deleted |
 | `TranslationRepositoryInterface::deleteByLanguageAndKey` | `bool` | whether the exact translation row was deleted |
 
+`GuardedLanguageRekeyRepositoryInterface` is the optional repository contract for an atomic destination check. Implement it only when `rekeyLanguageCode()` rejects an occupied destination while preventing concurrent writes from bypassing that check. The MySQL repository implements it. The write service keeps the destination preflight for existing implementations of `TranslationRepositoryInterface`.
+
+`SerializedDomainLanguageSummaryRepositoryInterface` is the optional coordination contract. The built-in MySQL implementation acquires the summary write lock before authoritative changes, including when a first translation creates the summary row. Existing custom repositories can keep their existing interface and own their concurrency strategy.
+
 Domain-specific operations retain their distinct contracts: `changeCode` and key `rename` perform guarded identity changes; translation `upsert` returns its upsert-result DTO; `rekeyLanguageCode` returns the number of migrated translations; `DomainScopeRepositoryInterface::assign` reports duplicate identity by exception and exposes no generated mapping ID; derived summary and key-stat mutations maintain package-owned derived state and expose no row IDs. These operations do not become generic create/update/delete commands.
 
-**Optional PHP-DI adapter (`Adapter\PhpDi\I18nBindings`)**: `I18nBindings::register(DI\ContainerBuilder $builder): void` registers `TransactionRunnerInterface` and the nine repository contracts above. The container must provide `PDO` and `ClockInterface`; services are autowired. The adapter requires `php-di/php-di` and `psr/container` in the Host; the Core never loads either (proved by the Consumer Verification Harness, which runs without them).
+**Optional PHP-DI adapter (`Adapter\PhpDi\I18nBindings`)**: `I18nBindings::register(DI\ContainerBuilder $builder): void` registers `TransactionRunnerInterface`, the core repository contracts, and the optional preview service with its storage binding. The container must provide `PDO` and `ClockInterface`; services are autowired. The adapter requires `php-di/php-di` and `psr/container` in the Host; the Core never loads either (proved by the Consumer Verification Harness, which runs without them).
 
 ### 5.12 Not public API
 
-Not supported as consumer contract, even though visible: `Repository\Mysql\MysqlTranslationKeyPreviewRepository`, `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
+Not supported as consumer contract, even though visible: `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
 
 ### 5.13 Management — Translation Key Preview
 
-To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Management\Service\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
+To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Pass the Host PDO to the supported `MysqlTranslationKeyPreviewRepository` and inject the repository and clock into `Management\Service\TranslationKeyPreviewService`. The service also accepts a PDO as its first argument for RC.2 compatibility. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
 
 The Host authorizes these operations and controls which requests can use a preview. See [Optional Translation Key Preview](#81-optional-translation-key-preview) for the storage, expiry, and rendering contracts.
 
@@ -319,7 +323,7 @@ The Host authorizes these operations and controls which requests can use a previ
 
 ### 6.2 Exception catalog
 
-Every exception defined by the Package implements `Maatify\I18n\Exception\I18nExceptionInterface` (extends `Throwable`), extends a `maatify/exceptions` base through an abstract I18n category class, and carries a stable `I18nErrorCodeEnum` code. External throwables, notably `PDOException`, propagate unchanged and are not forced to implement the marker.
+Every exception defined by the Package implements `Maatify\I18n\Exception\I18nExceptionInterface` (extends `Throwable`), extends a `maatify/exceptions` base through an abstract I18n category class, and carries a stable `I18nErrorCodeEnum` code. Thrown `PDOException` values propagate unchanged. The handling of Persistence Ordering execution failures is defined in [§6.3](#63-storage-failure-contract).
 
 | Exception | Category | Error code | Raised by |
 |---|---|---|---|
@@ -343,31 +347,38 @@ Every exception defined by the Package implements `Maatify\I18n\Exception\I18nEx
 
 Category base classes, catchable to handle a whole category: `I18nBusinessRuleException`, `I18nConflictException`, `I18nNotFoundException`, `I18nSystemException` (all abstract and implementing the marker).
 
+Key creation and rename let the repository enforce current uniqueness at the write. Under an older Host snapshot, they can still use a name that another transaction has released.
+
 Duplicate races end in the Package exception, never a raw PDO error: the database `UNIQUE` constraint is the final authority and a MySQL duplicate-key violation (driver code 1062 only) is classified into the matching conflict exception; any other failure propagates unchanged.
 
 ### 6.3 Storage failure contract
 
-`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state (`prepare`, `execute` or `fetch` failing under another error mode) becomes `I18nStorageException`. A failed ordering move also raises `I18nStorageException` when the target row still exists. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
+`PDO::ERRMODE_EXCEPTION` is the supported mode. A thrown `PDOException` propagates unchanged. A non-throwing failure state reported by the I18n PDO gateway becomes `I18nStorageException`. On scope and domain Ordering reads and moves, I18n wraps `OrderingExecutionException` as `I18nStorageException` and preserves the original cause. A move that reports zero changed rows also raises `I18nStorageException` when the target row still exists. A database integer outside the PHP integer range raises `I18nStorageException` before it can be used as a hydrated value or generated identifier. Storage failures propagate to the caller and retain their separate meaning from a miss, an empty list or a governance denial.
 
 ## 7. Transactions and Concurrency
 
 - **Transaction runner at the service layer:** translation writes, scope and domain mutations other than `moveToPosition()`, scope–domain assignment mutations, and `I18nStatsRebuilder::fullRebuild()` run through `maatify/php-persistence`'s `TransactionRunnerInterface` (`PdoTransactionRunner` is the supported implementation).
 - **Runner-backed operations without an outer transaction:** the runner owns `BEGIN` / `COMMIT` / `ROLLBACK`.
 - **Outer transaction supported:** when the connection already has an active transaction, I18n participates and never commits or rolls back the caller's transaction; the original `Throwable` is preserved. Atomic composition with Host data requires the **same `PDO` connection**.
-- **Translation key preview:** `Management\Service\TranslationKeyPreviewService` executes directly on the Host-supplied `PDO`. Its statements participate in any transaction already open on that connection. The Host retains responsibility for starting, committing, and rolling back its transaction. See [section 8.1](#81-optional-translation-key-preview).
+- **Translation key preview:** MySQL activation validates its generated ID within an owned transaction or an operation-local savepoint. An activation failure rolls back its insert within that boundary. The Host owns any outer transaction. See [section 8.1](#81-optional-translation-key-preview).
+- **Translation key placement:** upserts and deletes lock the current key row for sharing before changing a translation. Its placement stays stable through the summary refresh, including when the Host already has a repeatable-read snapshot.
+- **Summary writes:** the built-in services take one shared coordination point for key creation and moves, translation writes and re-keying, and whole-summary rebuilds. An exclusive InnoDB row lock on the reserved slot is acquired before authoritative changes and held until commit or rollback. This keeps summaries consistent when a key and the first translation are written concurrently, including under `READ COMMITTED`. Readers take no summary lock. Custom write paths that keep derived summaries must coordinate the same mutations before the first authoritative write.
 - **Derived layers** are written in the same transaction as the authoritative change.
+- **Translation mutations:** the built-in repository uses bounded InnoDB write locks for the affected exact language codes. It reserves slot 0 for summary coordination, 1 and 2 for governance ordering, and uses slots 3 through 255 for language writes. A re-key locks both codes in slot order, including the destination when it is empty. Locks last until the active transaction ends. A translation upsert checks the current exact row under the same lock and counts an insert only when it creates a row, independent of PDO affected-row mode. Writes that bypass the repository must preserve these invariants themselves.
 - **Locks:** a mutation that creates usage of a scope or domain (create key, move key, assign) takes SHARE locks on the governance rows in the fixed order scope, domain, mapping. A code change takes the UPDATE lock on its row and checks usage with locking reads before changing the code. "Unused, then usage created, then code changed" therefore cannot orphan a key. Repository locking reads require an active transaction.
-- **Ordering:** creates take a caller-owned ordering lock before allocating the next position. An empty ordering has no row to lock, so concurrent first creates may make InnoDB pick a deadlock victim (SQLSTATE 40001), which propagates unchanged; the Host may retry.
+- **Ordering:** scope and domain creates and moves acquire their table’s reserved InnoDB lock before delegating ordering to Persistence. The reservation is independent of the presence of entity rows and serializes first creates under REPEATABLE READ and READ COMMITTED.
 - **`moveToPosition()`** for scopes and domains uses `PdoTransactionRunner` inside `MysqlGovernanceTableSupport`. The runner wraps the reorder performed by `ScopedOrderingManager` and the follow-up locking read when the reorder reports failure.
 - **Reads** do not open transactions and take no locks.
 
 ## 8. Persistence and Schema
 
-- **Authority:** [schema/schema.i18n.sql](schema/schema.i18n.sql) is the fresh-install schema authority: seven tables, an `id` primary key on each, column comments and documented policies. A Host copy of it is a projection, never a second design source.
-- **Fresh installation:** apply the file to a fresh database, for example with `PDO::exec` over its contents. **It begins with `DROP TABLE IF EXISTS` for all seven tables**, so applying it to a database that already holds I18n data destroys that data.
+- **Authority:** [schema/schema.i18n.sql](schema/schema.i18n.sql) is the fresh-install schema authority: eight tables, an `id` primary key on each, column comments and documented policies. A Host copy of it is a projection, never a second design source.
+- **Fresh installation:** apply the file to a fresh database, for example with `PDO::exec` over its contents. **It begins with `DROP TABLE IF EXISTS` for all eight tables**, so applying it to a database that already holds I18n data destroys that data.
 - **Translation type column:** `VARCHAR(32) NULL COLLATE utf8mb4_bin`, protected by a check constraint, with no index. It is not part of translation identity, uniqueness or generated language identity.
-- **Engine:** MySQL with InnoDB, `utf8mb4`, generated stored columns, `CHECK` constraints and `COLLATE utf8mb4_bin` on language codes (MySQL 8.4 is the version exercised by the Package verification).
-- **Tables:** `maa_i18n_scopes`, `maa_i18n_domains`, `maa_i18n_domain_scopes`, `maa_i18n_keys`, `maa_i18n_translations`, `maa_i18n_domain_language_summary` (derived), `maa_i18n_key_stats` (derived).
+- **Engine:** MySQL with InnoDB, `utf8mb4`, generated stored columns, `CHECK` constraints and `COLLATE utf8mb4_0900_bin` on language codes (MySQL 8.4 is the version exercised by the Package verification).
+- **Governance flags:** Scope and domain activity accepts only the stored values 0 and 1. Invalid stored flags raise `I18nStorageException` during hydration.
+- **Existing installations:** use the [RC.3 schema upgrade](docs/guides/USAGE_GUIDE.md#rc3-schema-upgrade).
+- **Tables:** `maa_i18n_scopes`, `maa_i18n_domains`, `maa_i18n_domain_scopes`, `maa_i18n_keys`, `maa_i18n_translations`, `maa_i18n_domain_language_summary` (derived), `maa_i18n_key_stats` (derived), and `maa_i18n_language_write_locks` (internal).
 - **Host independence:** no foreign key to, and no join with, any Host table. Scope and domain codes are referenced by code, not by foreign key; the Package serializes code change versus new usage with row locks instead.
 - **No soft delete.** Translations hard-delete; per-key stats cascade from their key.
 - **Derived tables** are non-authoritative and rebuildable; `I18nStatsRebuilder::fullRebuild()` is the canonical recovery from drift.
@@ -375,12 +386,12 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 
 ### 8.1 Optional Translation Key Preview
 
-[The additive schema](schema/translation-key-preview.sql) installs `maa_i18n_translation_key_previews` independently of the seven core tables. It is safe to apply on an existing installation. It has no dependency on Host tables or translation records. Install it separately wherever the preview API is used.
+[The additive schema](schema/translation-key-preview.sql) installs `maa_i18n_translation_key_previews` independently of the eight core tables. It is safe to apply on an existing installation. It has no dependency on Host tables or translation records. Install it separately wherever the preview API is used.
 
 | API | Contract |
 |---|---|
 | `ValueObject\PreviewTarget(scope, domain, key?)` | A null key selects the entire domain. A supplied key selects one exact identity. Components follow the core storage size limits and use case-sensitive, byte-exact matching over render inputs. Targets can include keys with no translation row. |
-| `TranslationKeyPreviewService::activate(targets, expiresAt)` | Persists a non-empty list of targets in one insert and returns a snapshot with a new ID. Targets combine with OR. The deadline must be in the future and is stored in UTC with microsecond precision. |
+| `TranslationKeyPreviewService::activate(targets, expiresAt)` | Persists a non-empty list of targets and returns a snapshot with a validated ID. A failed activation rolls back its insert. Targets combine with OR. The deadline must be in the future and is stored in UTC with microsecond precision. |
 | `getActive(id)` | Returns a request snapshot or null for missing, deactivated, or expired IDs. The deadline is exclusive. |
 | `deactivate(id)` | Deletes the stored row and reports whether it existed. |
 | `purgeExpired()` | Deletes expired rows and returns the count. Expiry takes effect on read even without cleanup. |
@@ -388,7 +399,7 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 | `TranslationKeyPreviewDTO::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
 | `TranslationKeyPreviewDTO::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
 
-Preview reads and writes use the supplied PDO and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
+Construct `TranslationKeyPreviewService` with a `TranslationKeyPreviewRepositoryInterface` and a clock. `MysqlTranslationKeyPreviewRepository(PDO)` is the supported built-in implementation. The service also accepts a PDO as its first argument for RC.2 compatibility. Preview reads and writes use the supplied connection and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
 
 ## 9. Consumer Workflow
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maatify\I18n\Consumer\Service;
 
 use Maatify\I18n\Consumer\DTO\TranslationValueDTO;
+use Maatify\I18n\Repository\ExactTranslationReadRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\ValueObject\LanguageCode;
@@ -56,6 +57,12 @@ final readonly class TranslationReadService
         $exactCode = LanguageCode::tryFromNullable($languageCode);
         if ($exactCode === null) {
             return null; // fail-soft: an invalid code can own no row
+        }
+
+        if ($this->translationRepository instanceof ExactTranslationReadRepositoryInterface
+            && $this->translationRepository->canReadKeysFrom($this->keyRepository)
+        ) {
+            return $this->translationRepository->readStructuredTranslation($exactCode->value(), $scope, $domain, $key);
         }
 
         $translationKey = $this->keyRepository

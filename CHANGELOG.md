@@ -4,9 +4,33 @@ This file records package contents by release target. The package's initial cont
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-The current Published Release Candidate is [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2), published on 2026-11-14. No Stable release or Stable support line exists.
+[`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was published on 2026-11-14. No Stable release or Stable support line existed at preparation of `1.0.0-rc.3`.
 
 ## [Unreleased]
+
+## [1.0.0-rc.3]
+
+### Changed
+
+- Pin Ordering, Pagination and Transactions to `maatify/php-persistence:1.0.0-rc.2`.
+
+### Fixed
+
+- Propagate Ordering storage failures as `I18nStorageException` with the original Persistence cause.
+- Protect language re-keying from stale snapshots and concurrent translation writers.
+- Preserve trailing spaces in language identity and reject whitespace-only language codes.
+- Keep translated counts correct on unchanged upserts with PDO found-rows enabled.
+- Reject stored integers and generated IDs outside the PHP integer range.
+- Refresh translation coverage in the current scope and domain when a Host transaction started before the key moved.
+- Keep coverage correct when the first translation and a key are created concurrently.
+- Use current key uniqueness when an older Host snapshot still sees a released name.
+- Read exact key identities and translations together. Built-in MySQL domain reads also apply governance in the same statement.
+- Serialize initial scope and domain display order allocation.
+- Roll back failed preview activations and support injected preview storage.
+- Reject invalid stored activity flags and malformed language filter lists. Measure UTF-8 input lengths independently of Host encoding.
+- Correct the coverage rebuild procedure after authorized manual key deletion.
+
+Existing RC installations need the [RC.3 schema upgrade](docs/guides/USAGE_GUIDE.md#rc3-schema-upgrade).
 
 ## [1.0.0-rc.2] - 2026-11-14
 

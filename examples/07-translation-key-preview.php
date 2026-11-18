@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/_support/bootstrap.php';
 
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 
@@ -17,7 +18,8 @@ if ($schema === false) {
 
 $pdo->exec($schema);
 $clock = new SystemClock(new DateTimeZone('UTC'));
-$previews = new TranslationKeyPreviewService($pdo, $clock);
+$previewRepository = new MysqlTranslationKeyPreviewRepository($pdo);
+$previews = new TranslationKeyPreviewService($previewRepository, $clock);
 
 // The Host authorizes activation and selects this ID for an authorized request.
 $created = $previews->activate([

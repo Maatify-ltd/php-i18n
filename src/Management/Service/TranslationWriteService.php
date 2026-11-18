@@ -14,6 +14,7 @@ use Maatify\I18n\Exception\TranslationUpsertFailedException;
 use Maatify\I18n\Management\Command\CreateKeyCommand;
 use Maatify\I18n\Management\Command\RenameKeyCommand;
 use Maatify\I18n\Management\Command\UpsertTranslationCommand;
+use Maatify\I18n\Repository\GuardedLanguageRekeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
@@ -33,9 +34,10 @@ use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
  * move key) first takes SHARE locks on those governance rows (scope, then
  * domain, then mapping). A scope / domain code change takes the UPDATE lock on
  * the same row before checking usage, so "unused -> usage created -> code
- * changed" cannot orphan keys. The DB UNIQUE constraint remains the final
- * authority for duplicate keys and surfaces as
- * {@see TranslationKeyAlreadyExistsException}.
+ * changed" cannot orphan keys. The repository enforces uniqueness against the
+ * current write and reports duplicates as
+ * {@see TranslationKeyAlreadyExistsException}. Built-in writes take the
+ * summary lock before governance, key, and language locks.
  */
 final readonly class TranslationWriteService
 {
@@ -55,21 +57,11 @@ final readonly class TranslationWriteService
     public function createKey(CreateKeyCommand $command): int
     {
         return $this->tx->run(function () use ($command): int {
+            $this->missingCounter->lockSummaryWrites();
 
             $this->governancePolicy
                 ->assertScopeAndDomainAllowedForUsage($command->scope, $command->domain);
 
-            if ($this->keyRepository
-                    ->getByStructuredKey($command->scope, $command->domain, $command->key) !== null) {
-                throw new TranslationKeyAlreadyExistsException(
-                    $command->scope,
-                    $command->domain,
-                    $command->key,
-                );
-            }
-
-            // A concurrent duplicate that slips past the check above is
-            // classified by the repository from the UNIQUE violation.
             $id = $this->keyRepository->create($command);
 
             if ($id <= 0) {
@@ -95,6 +87,7 @@ final readonly class TranslationWriteService
     public function renameKey(RenameKeyCommand $command): void
     {
         $this->tx->run(function () use ($command): void {
+            $this->missingCounter->lockSummaryWrites();
 
             // Governance first (lock order), then the key row.
             $this->governancePolicy
@@ -104,17 +97,6 @@ final readonly class TranslationWriteService
 
             if ($existingKey === null) {
                 throw new TranslationKeyNotFoundException($command->keyId);
-            }
-
-            $duplicate = $this->keyRepository
-                ->getByStructuredKey($command->scope, $command->domain, $command->key);
-
-            if ($duplicate !== null && $duplicate->id !== $command->keyId) {
-                throw new TranslationKeyAlreadyExistsException(
-                    $command->scope,
-                    $command->domain,
-                    $command->key,
-                );
             }
 
             $oldScope  = $existingKey->scope;
@@ -173,12 +155,15 @@ final readonly class TranslationWriteService
      * the language exists / is active / is supported is Host policy.
      *
      * @throws TranslationKeyNotFoundException
+     * @throws \PDOException when the MySQL write or transaction fails
      */
     public function upsertTranslation(UpsertTranslationCommand $command): int
     {
         return $this->tx->run(function () use ($command): int {
+            $this->missingCounter->lockSummaryWrites();
 
-            if ($this->keyRepository->getById($command->keyId) === null) {
+            // Keep the current key placement stable through the counter refresh.
+            if ($this->keyRepository->getById($command->keyId, LockModeEnum::SHARE) === null) {
                 throw new TranslationKeyNotFoundException($command->keyId);
             }
 
@@ -201,6 +186,7 @@ final readonly class TranslationWriteService
                 $this->missingCounter->onTranslationCreated(
                     $command->languageCode,
                     $command->keyId,
+                    LockModeEnum::SHARE,
                 );
             }
 
@@ -233,8 +219,9 @@ final readonly class TranslationWriteService
         $exactCode = LanguageCode::fromNullable($languageCode)->value();
 
         $this->tx->run(function () use ($exactCode, $keyId): void {
+            $this->missingCounter->lockSummaryWrites();
 
-            if ($this->keyRepository->getById($keyId) === null) {
+            if ($this->keyRepository->getById($keyId, LockModeEnum::SHARE) === null) {
                 throw new TranslationKeyNotFoundException($keyId);
             }
 
@@ -246,6 +233,7 @@ final readonly class TranslationWriteService
                 $this->missingCounter->onTranslationDeleted(
                     $exactCode,
                     $keyId,
+                    LockModeEnum::SHARE,
                 );
             }
         });
@@ -277,8 +265,11 @@ final readonly class TranslationWriteService
         }
 
         return $this->tx->run(function () use ($oldCode, $newCode): int {
+            $this->missingCounter->lockSummaryWrites();
 
-            if ($this->translationRepository->hasAnyForLanguage($newCode)) {
+            if (!$this->translationRepository instanceof GuardedLanguageRekeyRepositoryInterface
+                && $this->translationRepository->hasAnyForLanguage($newCode)
+            ) {
                 throw new LanguageCodeAlreadyInUseException($newCode);
             }
 

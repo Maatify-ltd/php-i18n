@@ -130,15 +130,9 @@ When the Host renames a language code (`TranslationWriteService::rekeyLanguageCo
 
 ### 3.5 Key Deletion
 
-The public services do not delete keys (there is no `deleteKey`; see [chapter 06](06_translation_lifecycle.md)). The maintenance hook below exists on `MissingCounterService` for a Host that removes a key by its own means in the same transaction:
+The public services expose no key deletion. If an authorized maintenance operation removes keys directly, pause I18n write traffic and run [the full rebuild](#41-full-rebuild) after the deletion and its cascading translation changes. The rebuild refreshes both derived tables from the retained keys and translations. Keep traffic paused until the rebuild succeeds.
 
-1. The authoritative delete occurs in `maa_i18n_keys` (and `maa_i18n_translations` via FK cascade).
-2. `MissingCounterService::onKeyDeleted(keyId)` runs in the same TX:
-
-    * fetch key identity (fail-soft if not found)
-    * `maa_i18n_domain_language_summary`: `decrementTotalKeys(scope, domain)`
-      (implementation may choose rebuildScopeDomain for safety)
-    * `maa_i18n_key_stats`: `deleteForKey(keyId)`
+The legacy `onKeyDeleted(keyId)` callback looks up the key by ID and returns when the key is absent. Use the rebuild for repairs after a deletion.
 
 ---
 

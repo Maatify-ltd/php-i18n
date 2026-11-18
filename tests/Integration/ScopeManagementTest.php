@@ -24,8 +24,11 @@ use Maatify\I18n\Exception\I18nStorageException;
 use Maatify\I18n\Management\Command\CreateScopeCommand;
 use Maatify\I18n\Management\Command\UpdateScopeMetadataCommand;
 use Maatify\I18n\Management\Criteria\ScopeListCriteria;
+use Maatify\I18n\Repository\Mysql\MysqlGovernanceTableSupport;
+use Maatify\I18n\Repository\Mysql\PdoGateway;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
 use Maatify\PhpPersistence\Ordering\Exception\InvalidOrderingOperationException;
+use Maatify\PhpPersistence\Ordering\Exception\OrderingExecutionException;
 use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 
 /**
@@ -299,6 +302,75 @@ final class ScopeManagementTest extends MysqlIntegrationTestCase
             }
 
             $pdo->exec('DROP TRIGGER keep_scope_position');
+        }
+    }
+
+    public function testSilentOrderingReadFailurePreservesTheCause(): void
+    {
+        $pdo = $this->pdo();
+        $support = new MysqlGovernanceTableSupport(new PdoGateway($pdo), 'missing_ordering_fixture');
+        $pdo->beginTransaction();
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+
+        try {
+            $support->nextPosition();
+            self::fail('Expected the failed Ordering read to raise I18nStorageException.');
+        } catch (I18nStorageException $failure) {
+            self::assertInstanceOf(OrderingExecutionException::class, $failure->getPrevious());
+            self::assertTrue($pdo->inTransaction());
+        } finally {
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $pdo->rollBack();
+        }
+    }
+
+    public function testSilentScopeShiftFailurePreservesTheCauseAndHostTransaction(): void
+    {
+        $this->resetToOrdered('x', 'y', 'z');
+        $pdo = $this->pdo();
+        $target = $this->idOf('z');
+        $pdo->exec(<<<'SQL'
+            CREATE TRIGGER reject_scope_shift BEFORE UPDATE ON maa_i18n_scopes
+            FOR EACH ROW
+            BEGIN
+                IF OLD.code = 'y' AND NEW.sort_order = 3 THEN
+                    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Scope fixture rejected the shift';
+                END IF;
+            END
+            SQL);
+
+        try {
+            $pdo->beginTransaction();
+            $this->scopeManagement->setActive($this->idOf('x'), false);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+
+            try {
+                $this->scopeManagement->moveToPosition($target, 1);
+                self::fail('Expected the failed range shift to raise I18nStorageException.');
+            } catch (I18nStorageException $failure) {
+                $cause = $failure->getPrevious();
+                self::assertInstanceOf(OrderingExecutionException::class, $cause);
+                self::assertSame('Failed to execute the ordering statement for shiftOrdersUp.', $cause->getMessage());
+                self::assertTrue($pdo->inTransaction());
+            }
+
+            self::assertSame(['x', 'y', 'z'], $this->orderedCodes());
+            self::assertSame([1, 2, 3], $this->positions());
+            self::assertSame(0, $this->scalarInt("SELECT is_active FROM maa_i18n_scopes WHERE code = 'x'"));
+            self::assertTrue($pdo->commit());
+            self::assertSame([1, 2, 3], $this->positions());
+
+            $other = self::newConnection();
+            $seen = $other->query("SELECT is_active FROM maa_i18n_scopes WHERE code = 'x'");
+            self::assertNotFalse($seen);
+            self::assertSame(0, (int) $seen->fetchColumn());
+        } finally {
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            $pdo->exec('DROP TRIGGER reject_scope_shift');
         }
     }
 

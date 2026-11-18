@@ -27,7 +27,7 @@ final readonly class CreateScopeCommand
             throw I18nInvalidArgumentException::emptyField('code');
         }
 
-        if (mb_strlen($code) > 32) {
+        if (mb_strlen($code, 'UTF-8') > 32) {
             throw I18nInvalidArgumentException::tooLong('code', 32);
         }
 
@@ -35,7 +35,7 @@ final readonly class CreateScopeCommand
             throw I18nInvalidArgumentException::emptyField('name');
         }
 
-        if (mb_strlen($name) > 64) {
+        if (mb_strlen($name, 'UTF-8') > 64) {
             throw I18nInvalidArgumentException::tooLong('name', 64);
         }
     }

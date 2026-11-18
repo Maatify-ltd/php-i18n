@@ -25,6 +25,12 @@ final readonly class MysqlDomainScopeRepository implements DomainScopeRepository
         $this->gateway = new PdoGateway($pdo);
     }
 
+    /** Whether this repository reads from the supplied PDO connection. @internal */
+    public function usesConnection(PDO $pdo): bool
+    {
+        return $this->gateway->pdo() === $pdo;
+    }
+
     /**
      * Test whether this exact scope/domain pair is assigned. SHARE/UPDATE
      * locking modes require an active transaction.

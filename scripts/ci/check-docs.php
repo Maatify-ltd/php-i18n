@@ -131,7 +131,7 @@ foreach ($documents as $document) {
 
 }
 
-// The first RC is published; keep the exact consumer presentation synchronized.
+// Verify candidate identity separately from dated release history.
 $readme = (string) file_get_contents('README.md');
 $changelog = (string) file_get_contents('CHANGELOG.md');
 $llms = (string) file_get_contents('llms.txt');
@@ -172,43 +172,60 @@ if (preg_match('#^\[1\.0\.0-rc\.1\]: https://github\.com/Maatify-ltd/php-i18n/re
     $errors[] = 'CHANGELOG.md: published 1.0.0-rc.1 release link is missing';
 }
 
+$artifactTarget = '1.0.0-rc.3';
+$persistenceTarget = '1.0.0-rc.2';
 $publishedRc = '1.0.0-rc.2';
 $releaseDate = '2026-11-14';
-$badgeVersion = str_replace('-', '--', $publishedRc);
+$badgeVersion = str_replace('-', '--', $artifactTarget);
 $packagistRelease = 'https://packagist.org/packages/maatify/php-i18n#v' . $publishedRc;
 $githubRelease = 'https://github.com/Maatify-ltd/php-i18n/releases/tag/v' . $publishedRc;
-$publicationState = 'Published Release Candidate `' . $publishedRc . '` is available on [Packagist]('
-    . $packagistRelease . ').';
+$artifactState = 'Release Candidate artifact `' . $artifactTarget . '` was unpublished at preparation.';
+$stableState = 'No Published Stable release or Stable support line existed at preparation.';
+$publishedAtPreparation = 'At preparation, Release Candidate [`' . $publishedRc . '`](' . $packagistRelease
+    . ') was available on Packagist.';
 
 foreach (['README.md' => $readme, 'SECURITY.md' => $security, 'llms.txt' => $llms,
     'I18N_PACKAGE_REFERENCE.md' => $reference, 'docs/guides/USAGE_GUIDE.md' => $guide] as $document => $text) {
-    if (!str_contains($text, $publicationState)
-        || stripos($text, 'no Published Stable release') === false
-        || !str_contains($text, 'Stable support line')
-        || stripos($text, 'unpublished') !== false) {
-        $errors[] = $document . ': current published RC and Stable support status are required';
+    if (!str_contains($text, $artifactState) || !str_contains($text, $stableState)) {
+        $errors[] = $document . ': exact artifact and time-scoped publication and support state are required';
+    }
+    if (preg_match('/\b(?:published|available)\s+Release Candidate\s+`'
+        . preg_quote($artifactTarget, '/') . '`/i', $text) === 1) {
+        $errors[] = $document . ': prepared RC must not be presented as published';
+    }
+}
+foreach (['README.md' => $readme, 'llms.txt' => $llms,
+    'I18N_PACKAGE_REFERENCE.md' => $reference, 'docs/guides/USAGE_GUIDE.md' => $guide] as $document => $text) {
+    if (!str_contains($text, $publishedAtPreparation)) {
+        $errors[] = $document . ': the previously published RC must be scoped to preparation time';
     }
 }
 if (!str_contains($llms, '[CHANGELOG.md](CHANGELOG.md)')) {
     $errors[] = 'llms.txt: release navigation is missing';
 }
 
-$install = 'composer require maatify/php-i18n:' . $publishedRc . '@RC maatify/php-persistence:1.0.0-rc.1@RC';
+$install = 'composer require maatify/php-i18n:' . $artifactTarget . '@RC maatify/php-persistence:'
+    . $persistenceTarget . '@RC';
+$resolutionCondition = 'resolves once `' . $artifactTarget . '` is published on Packagist.';
 foreach (['README.md' => $readme, 'docs/guides/USAGE_GUIDE.md' => $guide] as $document => $text) {
-    if (!str_contains($text, $install)) {
-        $errors[] = $document . ': exact published RC install command with the Persistence RC allowance is missing';
+    if (!str_contains($text, $install) || !str_contains($text, $resolutionCondition)) {
+        $errors[] = $document . ': exact conditional install command with the Persistence RC allowance is missing';
     }
 }
 
 $publishedHeading = '## [' . $publishedRc . '] - ' . $releaseDate;
-if (preg_match('/^## \[Unreleased\]\R\s*^' . preg_quote($publishedHeading, '/') . '$/m', $changelog) !== 1
+$targetHeading = '## [' . $artifactTarget . ']';
+if (preg_match('/^## \[Unreleased\]\R\s*^' . preg_quote($targetHeading, '/') . '\R'
+    . '(.*?)^' . preg_quote($publishedHeading, '/') . '$/ms', $changelog, $targetChanges) !== 1
+    || !str_contains($targetChanges[1], 'maatify/php-persistence:' . $persistenceTarget)
+    || str_contains($changelog, '[' . $artifactTarget . ']:')
     || !str_contains($changelog, '[' . $publishedRc . ']: ' . $githubRelease)
     || !str_contains($changelog, $packagistRelease)) {
-    $errors[] = 'CHANGELOG.md: the current published RC requires its release date and distribution links';
+    $errors[] = 'CHANGELOG.md: require an undated candidate and keep published RC date and links';
 }
-if (!str_contains($readme, '[![Version](https://img.shields.io/badge/Version-' . $badgeVersion
-    . '-blue)](' . $githubRelease . ')')) {
-    $errors[] = 'README.md: Version badge must link to the current GitHub Pre-release';
+if (!str_contains($readme, '[![Version](https://img.shields.io/badge/Artifact-' . $badgeVersion
+    . '-blue)](#installation)')) {
+    $errors[] = 'README.md: artifact version badge must link to its conditional installation instructions';
 }
 
 $badgeRows = array_values(array_filter(
@@ -217,7 +234,7 @@ $badgeRows = array_values(array_filter(
 ));
 $expectedBadgeRows = [
     ['Status', 'Version', 'PHP', 'License', 'PHPStan'],
-    ['Packagist', 'Monthly Downloads', 'Total Downloads', 'Maatify Ecosystem', 'Install'],
+    ['Packagist', 'Monthly Downloads', 'Total Downloads', 'Maatify Ecosystem'],
     ['Usage Guide', 'Examples', 'Package Reference', 'Book', 'Changelog', 'Security', 'Contributing'],
 ];
 if (count($badgeRows) !== count($expectedBadgeRows)) {
@@ -233,7 +250,7 @@ if (count($badgeRows) !== count($expectedBadgeRows)) {
 }
 $requiredBadges = [
     'Status-Release%20Candidate-blue',
-    'Version-' . $badgeVersion . '-blue',
+    'Artifact-' . $badgeVersion . '-blue',
     'PHP-%3E%3D8.4.27%20%3C8.5.0%20%7C%7C%20%3E%3D8.5.12%20%3C8.6.0-8892BF',
     'License-Proprietary-green',
     'PHPStan-Level%20Max-4E8CAE',
@@ -241,7 +258,6 @@ $requiredBadges = [
     'packagist/dm/maatify/php-i18n',
     'packagist/dt/maatify/php-i18n',
     'Maatify-Ecosystem-blueviolet',
-    'Install-' . $badgeVersion . '%40RC-blue',
 ];
 foreach ($requiredBadges as $badge) {
     if (!str_contains($readmeHeader, 'https://img.shields.io/' . $badge)
@@ -331,6 +347,7 @@ $requiredDistributionPaths = [
     'schema/migrations/2026-10-02-translation-type.sql',
     'tests/Fixtures/Schema/schema.pre-s1.i18n.sql',
     'tests/Integration/TranslationTypeMigrationTest.php',
+    'tests/Integration/ExactLanguageWritesMigrationTest.php',
 ];
 $requiredComposerExclusions = [
     '/dcos',
@@ -338,6 +355,7 @@ $requiredComposerExclusions = [
     '/schema/migrations/2026-10-02-translation-type.sql',
     '/tests/Fixtures/Schema/schema.pre-s1.i18n.sql',
     '/tests/Integration/TranslationTypeMigrationTest.php',
+    '/tests/Integration/ExactLanguageWritesMigrationTest.php',
 ];
 $composerData = json_decode((string) file_get_contents('composer.json'), true);
 $composerExclusions = $composerData['archive']['exclude'] ?? [];

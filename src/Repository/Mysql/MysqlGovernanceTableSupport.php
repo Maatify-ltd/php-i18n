@@ -9,6 +9,7 @@ use Maatify\I18n\Exception\I18nStorageException;
 use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\I18n\Enum\LockModeEnum;
 use Maatify\PhpPersistence\Ordering\Config\ScopedOrderingConfig;
+use Maatify\PhpPersistence\Ordering\Exception\OrderingExecutionException;
 use Maatify\PhpPersistence\Ordering\Repository\ScopedOrderingManager;
 use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
@@ -28,6 +29,8 @@ use Maatify\PhpPersistence\Pagination\ValueObject\SortWhitelist;
  */
 final readonly class MysqlGovernanceTableSupport
 {
+    private const ORDERING_SLOTS = ['maa_i18n_scopes' => 1, 'maa_i18n_domains' => 2];
+
     private ScopedOrderingConfig $orderingConfig;
 
     /**
@@ -51,43 +54,57 @@ final readonly class MysqlGovernanceTableSupport
     /**
      * Next display position (max + 1). The caller owns the transaction and
      * must hold {@see self::lockOrderingScope()} for concurrent creates.
+     *
+     * @throws I18nStorageException if Ordering reports an execution failure
+     * @throws \PDOException if PDO throws while reading
      */
     public function nextPosition(): int
     {
-        return $this->ordering->getNextPositionForUpdate($this->gateway->pdo(), $this->orderingConfig);
+        try {
+            return $this->ordering->getNextPositionForUpdate($this->gateway->pdo(), $this->orderingConfig);
+        } catch (OrderingExecutionException $failure) {
+            throw new I18nStorageException($this->table . '.nextPosition', $failure);
+        }
     }
 
     /**
-     * Caller-owned lock that serializes concurrent position allocation. It
-     * takes the same locks, in the same index order (display position, then id),
-     * as maatify/php-persistence takes for a move, so creates and moves contend on
-     * the first row instead of deadlocking each other. Requires an active
-     * transaction.
-     *
-     * An EMPTY ordering has no row to lock: concurrent first creates may make
-     * InnoDB choose a deadlock victim (SQLSTATE 40001, propagated unchanged).
+     * Lock the table's reserved slot before allocating or moving a position,
+     * including when the ordering table is empty. The caller retains the lock
+     * until its transaction ends.
      */
     public function lockOrderingScope(): void
     {
         $this->assertInTransaction();
 
-        $this->gateway->run(
-            'SELECT id FROM ' . $this->table . ' ORDER BY sort_order ASC, id ASC FOR UPDATE',
-            [],
+        $slot = self::ORDERING_SLOTS[$this->table] ?? throw new LogicException('Unknown governance ordering table.');
+        $this->gateway->write(
+            'INSERT INTO maa_i18n_language_write_locks (id) VALUES (:id)
+             ON DUPLICATE KEY UPDATE id = id',
+            ['id' => $slot],
             $this->table . '.lockOrdering',
         );
     }
 
     /**
      * @return bool false only when the target is missing
-     * @throws I18nStorageException if the target still exists after a failed move
+     * @throws I18nStorageException if Ordering reports an execution failure, the follow-up read fails without
+     *                              throwing, or the existing target did not move
+     * @throws \PDOException if PDO throws during the move or follow-up read
      */
     public function moveToPosition(int $id, int $position): bool
     {
         $pdo = $this->gateway->pdo();
 
         return (new PdoTransactionRunner($pdo))->run(function () use ($pdo, $id, $position): bool {
-            if ($this->ordering->moveWithinScope($pdo, $this->orderingConfig, null, $id, $position)) {
+            $this->lockOrderingScope();
+
+            try {
+                $moved = $this->ordering->moveWithinScope($pdo, $this->orderingConfig, null, $id, $position);
+            } catch (OrderingExecutionException $failure) {
+                throw new I18nStorageException($this->table . '.moveToPosition', $failure);
+            }
+
+            if ($moved) {
                 return true;
             }
 

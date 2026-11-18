@@ -5,9 +5,9 @@
 - **Overall Resolution Status:** `VALID`
 - **Adoption Model:** Selective pinned adoption
 - **Upstream Repository:** `https://github.com/Maatify-ltd/php-engineering-standards.git`
-- **Adoption Commit:** `d3dd98b8d82c8bcdd65614fe4ed80853bdcdcc73`
-- **Adoption Date:** `2026-11-14`
-- **Latest Applicability Re-evaluation:** `2026-11-14` against the exact Adoption Commit.
+- **Adoption Commit:** `1f560795397f24bddcc3d09b982ff93a77f7154e`
+- **Adoption Date:** `2026-11-18`
+- **Latest Applicability Re-evaluation:** `2026-11-18` against the exact Adoption Commit.
 - **Additional Standards:** None
 - **Explicit Exceptions/Overrides:** None
 
@@ -51,13 +51,13 @@ These are the final Stage 2 applicable standards for the two activations at `/`,
 
 | Standard ID | Version | Local path | Resolution provenance |
 |---|---:|---|---|
-| `std-package-building` | `4.0.0` | [PACKAGE_BUILDING_STANDARD.md](standards/packages/PACKAGE_BUILDING_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone Composer package |
-| `std-composer-package` | `6.1.0` | [COMPOSER_PACKAGE_STANDARD.md](standards/packages/COMPOSER_PACKAGE_STANDARD.md) | Direct requirement of `composer-package` at `/`; repository is the standalone package root |
-| `std-ci-workflow` | `6.0.0` | [CI_WORKFLOW_STANDARD.md](standards/packages/CI_WORKFLOW_STANDARD.md) | Direct requirement of `composer-package` at `/`; package CI scope |
+| `std-package-building` | `5.0.0` | [PACKAGE_BUILDING_STANDARD.md](standards/packages/PACKAGE_BUILDING_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone Composer package |
+| `std-composer-package` | `7.0.0` | [COMPOSER_PACKAGE_STANDARD.md](standards/packages/COMPOSER_PACKAGE_STANDARD.md) | Direct requirement of `composer-package` at `/`; repository is the standalone package root |
+| `std-ci-workflow` | `7.0.0` | [CI_WORKFLOW_STANDARD.md](standards/packages/CI_WORKFLOW_STANDARD.md) | Direct requirement of `composer-package` at `/`; package CI scope |
 | `std-library-presentation` | `6.0.0` | [LIBRARY_PRESENTATION_STANDARD.md](standards/packages/LIBRARY_PRESENTATION_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone reusable package presentation scope |
 | `std-testing` | `3.0.0` | [TESTING_STANDARD.md](standards/testing/TESTING_STANDARD.md) | Direct requirement of `composer-package` at `/`; package testing scope |
 | `std-php-source-documentation` | `1.0.0` | [PHP_SOURCE_DOCUMENTATION_STANDARD.md](standards/php/PHP_SOURCE_DOCUMENTATION_STANDARD.md) | Direct requirement of `composer-package` at `/`; the package owns manually maintained PHP source |
-| `std-php-coding-style` | `1.0.1` | [PHP_CODING_STYLE_STANDARD.md](standards/php/PHP_CODING_STYLE_STANDARD.md) | Direct requirement of `composer-package` at `/`; the package owns manually maintained PHP code |
+| `std-php-coding-style` | `1.0.2` | [PHP_CODING_STYLE_STANDARD.md](standards/php/PHP_CODING_STYLE_STANDARD.md) | Direct requirement of `composer-package` at `/`; the package owns manually maintained PHP code |
 | `std-documentation-lifecycle` | `3.1.1` | [DOCUMENTATION_LIFECYCLE_STANDARD_AR.md](standards/governance/DOCUMENTATION_LIFECYCLE_STANDARD_AR.md) | Direct requirement of both active profiles; package owns durable documentation and repository governance records |
 | `std-decision-governance` | `1.0.0` | [DECISION_GOVERNANCE_STANDARD_AR.md](standards/governance/DECISION_GOVERNANCE_STANDARD_AR.md) | Direct requirement of `repository-governance` at `/`; Maatify repository governance applies |
 | `std-ai-collaboration-workflow` | `13.0.0` | [AI_COLLABORATION_WORKFLOW_AR.md](standards/ai/AI_COLLABORATION_WORKFLOW_AR.md) | Direct requirement of `repository-governance` at `/` |
@@ -67,4 +67,4 @@ These are the final Stage 2 applicable standards for the two activations at `/`,
 
 Both profiles apply at the standalone package root and neither extends another profile. The 12 unique candidates resolve to the 11 listed standards. External Provider Verification is excluded because the package owns no provider-specific contract. The package owns PDO/MySQL repositories, schema, manually maintained PHP, tests and governance documentation, so the applicable persistence and verification clauses apply.
 
-This upgrade replaces pin `5f872d3ef7da847cba3f82fee124a19c22f1c5c4` with the exact approved upstream snapshot recorded above. No explicit additional standards or exceptions apply.
+This upgrade replaces pin `7f73468922d4e58b5d86cd9511e1081c28acf420` with the exact approved upstream snapshot recorded above. No explicit additional standards or exceptions apply.

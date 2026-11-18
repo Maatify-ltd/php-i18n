@@ -5,7 +5,7 @@
 
 ## Current Support State
 
-Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). No Published Stable release or Stable support line exists. Release Candidates do not establish Stable support.
+Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. No Published Stable release or Stable support line existed at preparation. Release Candidates do not establish Stable support.
 
 ## Reporting a Vulnerability
 

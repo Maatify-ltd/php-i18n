@@ -29,13 +29,7 @@ final readonly class LanguageTranslationValuesCriteria
         public ?string $valueLike = null,
         public PageRequest $page = new PageRequest(),
     ) {
-        if (LanguageCode::tryFromNullable($languageCode) === null) {
-            if (mb_strlen($languageCode) > LanguageCode::MAX_LENGTH) {
-                throw I18nInvalidArgumentException::tooLong('languageCode', LanguageCode::MAX_LENGTH);
-            }
-
-            throw I18nInvalidArgumentException::emptyField('languageCode');
-        }
+        LanguageCode::requireFilterCode($languageCode, 'languageCode');
 
         if ($id !== null && $id <= 0) {
             throw I18nInvalidArgumentException::notPositive('id');

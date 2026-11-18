@@ -62,11 +62,17 @@ jobs:
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
 
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "8.4"
+
       - name: Resolve dependencies
         run: composer update --no-interaction --prefer-dist --no-progress
 
       - name: Composer validation
         run: composer check:composer
+
+      - name: Composer PHP constraint boundaries
+        run: composer check:php-constraint
 
       - name: Platform requirements
         run: composer check:platform
@@ -118,6 +124,9 @@ jobs:
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
 
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "${{ matrix.php }}"
+
       - name: Resolve dependencies
         run: composer update --no-interaction --prefer-dist --no-progress
 
@@ -143,6 +152,9 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
+
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "${{ matrix.php }}"
 
       - name: Resolve dependencies
         run: composer update --no-interaction --prefer-dist --no-progress
@@ -173,6 +185,9 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
+
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "${{ matrix.php }}"
 
       - name: Resolve latest-compatible dependencies
         if: matrix.mode == 'latest'
@@ -217,6 +232,9 @@ jobs:
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
 
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "${{ matrix.php }}"
+
       - name: Resolve dependencies
         run: composer update --no-interaction --prefer-dist --no-progress
 
@@ -242,6 +260,9 @@ jobs:
           extensions: mbstring, pdo, pdo_mysql
           tools: composer:${{ env.COMPOSER_VERSION }}
           coverage: none
+
+      - name: Verify the Stable PHP runtime
+        run: composer check:php-runtime -- "${{ matrix.php }}"
 
       - name: Consumer Verification Harness (two clean runs)
         run: composer verify:consumer

@@ -191,12 +191,11 @@ final class ConcurrencyTest extends MysqlIntegrationTestCase
 
     // ── B. duplicate-key race classification ───────────────────────────────
 
-    public function testAKeyDuplicateRacePastThePrecheckSurfacesAsTheSemanticException(): void
+    public function testAKeyDuplicateRaceSurfacesAsTheSemanticException(): void
     {
         $pdo = $this->pdo();
         $pdo->beginTransaction();
-        // A inserted the identity but has not committed: B's pre-check cannot see
-        // it, B's INSERT blocks on the unique index and then loses the race.
+        // B waits for the writer's transaction and classifies the committed duplicate.
         $this->createKey('ct', 'home', 'dup');
 
         $worker = $this->worker('createKey', ['scope' => 'ct', 'domain' => 'home', 'key' => 'dup']);
@@ -306,8 +305,7 @@ final class ConcurrencyTest extends MysqlIntegrationTestCase
 
     public function testConcurrentCreatesAllocateDistinctContiguousDisplayPositions(): void
     {
-        // base seeds one scope ('ct', position 0): the ordering is not empty, so
-        // the last row is the lock every creator contends on.
+        // The base seeds scope ct at position zero. Creators share the scope ordering lock.
         $barrier = 'i18n_it_go_' . bin2hex(random_bytes(4));
         $holder = self::newConnection();
         $holder->prepare('SELECT GET_LOCK(:n, 5)')->execute(['n' => $barrier]);
@@ -326,10 +324,7 @@ final class ConcurrencyTest extends MysqlIntegrationTestCase
 
     public function testConcurrentFirstCreatesIntoAnEmptyOrderingNeverCorruptTheOrder(): void
     {
-        // Documented caveat: an EMPTY ordering has no row to lock, so InnoDB may
-        // pick one concurrent creator as a deadlock victim (SQLSTATE 40001,
-        // propagated UNCHANGED for the caller to retry). It must never produce
-        // duplicate positions or an unclassified failure.
+        // The ordering lock exists independently of the rows in the ordering table.
         $this->pdo()->exec('DELETE FROM maa_i18n_domain_scopes');
         $this->pdo()->exec('DELETE FROM maa_i18n_scopes');
 
@@ -342,19 +337,10 @@ final class ConcurrencyTest extends MysqlIntegrationTestCase
             $workers[] = $this->worker('createScope', ['code' => 'e' . $i, 'name' => 'E' . $i], 'strict', $barrier);
         }
 
-        $created = 0;
         foreach ($this->releaseTogether($barrier, $holder, $workers) as $outcome) {
-            if ($outcome['ok']) {
-                $created++;
-                continue;
-            }
-
-            self::assertSame('PDOException', $outcome['class'] ?? null);
-            self::assertStringContainsString('1213', $outcome['message'] ?? '', 'only a deadlock-victim error is acceptable');
+            self::assertTrue($outcome['ok'], 'create failed: ' . json_encode($outcome));
         }
 
-        $positions = $this->scopePositions();
-        self::assertCount($created, $positions);
-        self::assertSame($positions, array_values(array_unique($positions)), 'no duplicated display position');
+        self::assertSame(range(1, 4), $this->scopePositions());
     }
 }

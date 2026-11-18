@@ -32,6 +32,12 @@ final readonly class MysqlScopeRepository implements ScopeRepositoryInterface
         $this->support = new MysqlGovernanceTableSupport($this->gateway, 'maa_i18n_scopes');
     }
 
+    /** Whether this repository reads from the supplied PDO connection. @internal */
+    public function usesConnection(PDO $pdo): bool
+    {
+        return $this->gateway->pdo() === $pdo;
+    }
+
     /**
      * Read the exact scope code, returning null only when no row matches.
      * SHARE/UPDATE locking modes require an active transaction.

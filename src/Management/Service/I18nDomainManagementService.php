@@ -45,6 +45,7 @@ final readonly class I18nDomainManagementService
      * @return int id of the new domain (appended to the display order)
      *
      * @throws DomainAlreadyExistsException
+     * @throws \PDOException when the MySQL write or transaction fails
      */
     public function create(CreateDomainCommand $command): int
     {
@@ -120,7 +121,7 @@ final readonly class I18nDomainManagementService
             throw I18nInvalidArgumentException::emptyField('newCode');
         }
 
-        if (mb_strlen($newCode) > 64) {
+        if (mb_strlen($newCode, 'UTF-8') > 64) {
             throw I18nInvalidArgumentException::tooLong('newCode', 64);
         }
 

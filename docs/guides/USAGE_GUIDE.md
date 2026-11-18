@@ -2,15 +2,23 @@
 
 How to integrate `maatify/php-i18n` into an application. This guide presents the contract; it does not define one. The canonical contract and the complete Public Runtime API inventory live in [I18N_PACKAGE_REFERENCE.md](../../I18N_PACKAGE_REFERENCE.md).
 
-> Published Release Candidate `1.0.0-rc.2` is available on [Packagist](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2). No Published Stable release or Stable support line exists.
+> Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At preparation, Release Candidate [`1.0.0-rc.2`](https://packagist.org/packages/maatify/php-i18n#v1.0.0-rc.2) was available on Packagist. No Published Stable release or Stable support line existed at preparation.
 
-The examples below apply to `1.0.0-rc.2`. See [requirements](../../composer.json) and run this command in your Composer project. The dependency allowance keeps the consumer's `minimum-stability: stable`.
+The examples below apply to `1.0.0-rc.3`. The exact command below resolves once `1.0.0-rc.3` is published on Packagist. See [requirements](../../composer.json). The dependency allowance keeps the consumer's `minimum-stability: stable`.
 
 ```bash
-composer require maatify/php-i18n:1.0.0-rc.2@RC maatify/php-persistence:1.0.0-rc.1@RC
+composer require maatify/php-i18n:1.0.0-rc.3@RC maatify/php-persistence:1.0.0-rc.2@RC
 ```
 
-For `1.0.0-rc.1`, use its [release-specific guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
+For the earlier releases, see the [`1.0.0-rc.2` guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.2/docs/guides/USAGE_GUIDE.md) or the [`1.0.0-rc.1` guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
+
+### RC.3 schema upgrade
+
+For an existing RC.1 or RC.2 database, back up the I18n tables and pause traffic from the previous version. Apply [the exact-language migration](../../schema/migrations/2026-11-18-exact-language-writes.sql) to the I18n database before enabling RC.3. Run the migration outside an open transaction with a MySQL client that stops on the first error.
+
+Before applying persistent DDL, the migration checks both translation and summary rows for whitespace-only language codes and both governance tables for active flags outside 0 or 1. If a preflight fails, resolve the affected values under Host policy before retrying. The migration preserves valid codes and translation values byte for byte, including trailing spaces. If an old ordering contains duplicate positions, the migration assigns distinct positions in its existing `sort_order, id` display order. The DDL statements commit separately, so keep traffic paused until the whole migration succeeds. Re-running the migration after a partial DDL failure is safe.
+
+After the migration, run `I18nStatsRebuilder::fullRebuild()` with write traffic still paused to rebuild summaries and counters from the stored translations. The rebuild uses existing authoritative rows and cannot restore values overwritten by the previous collation.
 
 ## 1. Fit, Requirements and Boundaries
 
@@ -20,7 +28,7 @@ For `1.0.0-rc.1`, use its [release-specific guide](https://github.com/Maatify-lt
 
 - For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements.
 - a MySQL database and a `PDO` connection with `PDO::ERRMODE_EXCEPTION`;
-- the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the seven `maa_i18n_*` tables, so never apply it over live data);
+- the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the eight `maa_i18n_*` tables, so never apply it over live data);
 - a clock implementing `Maatify\SharedCommon\Contracts\ClockInterface` (for example `SystemClock`).
 
 **I18n does not:** own languages or locale selection, fall back to another language, cache, load files, delete keys, or ship a migration framework. ([Reference section 11](../../I18N_PACKAGE_REFERENCE.md#11-host-owned-responsibilities))
@@ -158,7 +166,9 @@ The value-only methods keep their existing result shapes. Rich reads distinguish
 
 Rules to remember: codes are case-sensitive (`'ar'` is not `'AR'`); `'ar-EG'` does not fall back to `'ar'`; a bulk read of a domain that is not readable under the policy is empty.
 
-**Fallback is yours.** If your product wants `ar-EG` then `ar` then `en`, write that chain around `getValue` (see [example 03](../../examples/03-exact-reads-and-host-fallback.php)); treat `''` as an answer, not as a miss. Cache the result of `getDomainValues` (it reads each key separately) and invalidate after writes.
+**Fallback is yours.** If your product wants `ar-EG` then `ar` then `en`, write that chain around `getValue` (see [example 03](../../examples/03-exact-reads-and-host-fallback.php)). An empty string is an existing translation.
+
+With the built-in MySQL repositories on one PDO connection, `getDomainValues` and `getDomainTranslations` apply governance and read translations in one SQL statement. See the [read contract](../../I18N_PACKAGE_REFERENCE.md#51-consumer-reads-consumer) for isolation and custom repository behavior. If the Host caches a domain result, invalidate it after writes.
 
 ## 7. Management Reads
 
@@ -230,13 +240,15 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 
 ## 12. Translation Key Preview
 
-Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Wire `TranslationKeyPreviewService` with your I18n PDO and clock. The same PDO lets Host-owned transactions include preview writes.
+Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Create the built-in `MysqlTranslationKeyPreviewRepository` with your I18n PDO, then pass the repository and clock to `TranslationKeyPreviewService`. The same PDO lets Host-owned transactions include preview writes. The service also accepts a PDO as its first argument for RC.2 compatibility.
 
 ```php
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 
-$previews = new TranslationKeyPreviewService($pdo, $clock);
+$previewRepository = new MysqlTranslationKeyPreviewRepository($pdo);
+$previews = new TranslationKeyPreviewService($previewRepository, $clock);
 
 // In the authorized management action:
 $created = $previews->activate([

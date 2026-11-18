@@ -6,6 +6,7 @@ namespace Maatify\I18n\Management\Service;
 
 use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\KeyStatsRepositoryInterface;
+use Maatify\I18n\Repository\SerializedDomainLanguageSummaryRepositoryInterface;
 use Maatify\PhpPersistence\Transaction\Repository\TransactionRunnerInterface;
 
 /**
@@ -33,6 +34,9 @@ final readonly class I18nStatsRebuilder
     public function fullRebuild(): void
     {
         $this->tx->run(function (): void {
+            if ($this->summaryRepository instanceof SerializedDomainLanguageSummaryRepositoryInterface) {
+                $this->summaryRepository->lockSummaryWrites();
+            }
 
             // 1) Clear derived tables
             $this->summaryRepository->truncate();

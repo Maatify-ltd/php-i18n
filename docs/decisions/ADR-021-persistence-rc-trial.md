@@ -1,7 +1,8 @@
 # ADR-021 — Shared Persistence RC trial
 
 - **Decision ID:** ADR-021
-- **Status:** ACTIVE
+- **Status:** SUPERSEDED
+- **Superseded By:** [ADR-023](ADR-023-persistence-rc2-pin.md)
 - **Date:** 2026-11-14
 - **Decision Authority:** Package Owner.
 - **Canonical Contract / Current Owner:** [Package Reference](../../I18N_PACKAGE_REFERENCE.md).

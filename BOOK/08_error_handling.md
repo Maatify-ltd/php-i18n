@@ -12,11 +12,11 @@ All write operations (Admin APIs, Setup Scripts) **must** enforce strict rules a
 | `LanguageCodeAlreadyInUseException`    | Re-key target code already owns translations. | `TranslationWriteService` |
 | `TranslationKeyNotFoundException`      | Key ID does not exist.                 | `TranslationWriteService`     |
 | `TranslationKeyAlreadyExistsException` | Key `scope.domain.key` already exists. | `TranslationWriteService`     |
-| `TranslationKeyCreateFailedException`  | Database insertion failure.            | `TranslationWriteService`     |
+| `TranslationKeyCreateFailedException`  | The repository returned no valid key ID.            | `TranslationWriteService`     |
 | `ScopeNotAllowedException`             | Scope is invalid or inactive.          | `I18nGovernancePolicyService` |
 | `DomainNotAllowedException`            | Domain is invalid or inactive.         | `I18nGovernancePolicyService` |
 | `DomainScopeViolationException`        | Domain is not mapped to Scope.         | `I18nGovernancePolicyService` |
-| `TranslationUpsertFailedException`     | Translation insert/update failure.     | `TranslationWriteService`     |
+| `TranslationUpsertFailedException`     | The repository returned no valid translation ID.     | `TranslationWriteService`     |
 
 ### Handling Example
 
@@ -36,7 +36,7 @@ try {
 
 ## 2. Fail-Soft Reads (Nulls)
 
-Runtime read operations (`TranslationReadService`) avoid exceptions to prevent application crashes.
+Runtime reads return `null` or an empty DTO for expected missing data. Storage failures propagate as described in the [Package Reference](../I18N_PACKAGE_REFERENCE.md#63-storage-failure-contract).
 
 *   **Missing Key:** Returns `null`.
 *   **Missing Translation:** Returns `null` (exact scope only, no fallback).
@@ -46,16 +46,8 @@ Runtime read operations (`TranslationReadService`) avoid exceptions to prevent a
 Application code **must** be robust to `null` returns.
 
 ```php
-$text = $readService->getValue(..., 'welcome');
-
-// Option 1: Default String
-echo $text ?? 'Welcome';
-
-// Option 2: Fallback Logic
-if ($text === null) {
-    Logger::warning('Missing translation key: welcome');
-    echo 'Welcome';
-}
+$text = $readService->getValue('en', 'web', 'home', 'welcome');
+echo htmlspecialchars($text ?? 'Welcome', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 ```
 
 **Language codes:**

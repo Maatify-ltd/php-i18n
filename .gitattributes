@@ -5,3 +5,4 @@
 /schema/migrations/2026-10-02-translation-type.sql export-ignore
 /tests/Fixtures/Schema/schema.pre-s1.i18n.sql export-ignore
 /tests/Integration/TranslationTypeMigrationTest.php export-ignore
+/tests/Integration/ExactLanguageWritesMigrationTest.php export-ignore

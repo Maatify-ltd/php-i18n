@@ -38,6 +38,12 @@ final readonly class MysqlTranslationKeyRepository implements TranslationKeyRepo
         $this->gateway = new PdoGateway($pdo);
     }
 
+    /** Whether this repository reads from the given PDO connection. @internal */
+    public function usesConnection(PDO $pdo): bool
+    {
+        return $this->gateway->pdo() === $pdo;
+    }
+
     /**
      * Insert the exact structured key and return its new ID; a duplicate
      * identity is classified as TranslationKeyAlreadyExistsException.
