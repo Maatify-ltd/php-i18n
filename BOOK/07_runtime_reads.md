@@ -79,7 +79,7 @@ $login = $typed->get('login.title'); // TranslationValueDTO: value + nullable ty
 *   `getDomainValues()` remains value-only. `getDomainTranslations()` returns `key_part => TranslationValueDTO`; absent rows are omitted, while an existing row with an empty value remains present.
 *   Every non-null type is an opaque consumer-defined token. I18n does not define its vocabulary or assign behavior to it, and does not trust, render or sanitize value content.
 
-The domain service checks governance before the MySQL repository reads the domain’s keys and exact translations in one statement.
+With the built-in repositories on one PDO connection, MySQL reads the governance state, keys, and exact translations in one statement. A concurrent deactivation cannot pair an earlier governance decision with a later translation.
 
 The package does not cache reads. A Host that repeatedly reads the same domain may choose to cache bulk reads when appropriate. If the Host caches these results, it is responsible for invalidating them after writes through `TranslationWriteService`.
 

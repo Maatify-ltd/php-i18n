@@ -118,7 +118,7 @@ Fail-soft: no exception for a data miss.
 
 Constructors: `TranslationReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface)`; `TranslationDomainReadService(TranslationKeyRepositoryInterface, TranslationRepositoryInterface, I18nGovernancePolicyService)`.
 
-When both built-in MySQL repositories share a PDO connection, I18n reads the exact key identity and its value in one statement for point and domain reads. The domain service checks governance before running the domain read. `getValue` returns only the value, and `getTranslation` also returns the type. Custom repositories can implement `ExactTranslationReadRepositoryInterface` to provide the same read boundary when the supplied key repository is compatible. Hosts using custom split repositories control the snapshot across the two repositories.
+When the built-in MySQL repositories share one PDO connection, point reads obtain the exact key identity and translation in one statement, and domain reads include the configured governance rules in the same statement as the key and translation. This gives each domain result one snapshot, including under `READ COMMITTED` and inside a Host transaction. `getValue` returns only the value, and `getTranslation` also returns the type. Custom repositories can implement `ExactTranslationReadRepositoryInterface` for joined key and translation reads or `GovernedDomainReadRepositoryInterface` to include compatible governance sources. Hosts using custom split repositories own the consistent snapshot across those sources.
 
 ### 5.2 Translation writes (`Management\Service\TranslationWriteService`)
 
@@ -302,11 +302,11 @@ Domain-specific operations retain their distinct contracts: `changeCode` and key
 
 ### 5.12 Not public API
 
-Not supported as consumer contract, even though visible: `Repository\Mysql\MysqlTranslationKeyPreviewRepository`, `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
+Not supported as consumer contract, even though visible: `Repository\Mysql\PdoGateway`, `Repository\Mysql\Row`, `Repository\Mysql\MysqlGovernanceTableSupport`, `Exception\I18nErrorPolicy` (infrastructure of the exception hierarchy), the SQL text and query shapes of the repositories, `tests/`, `examples/`, `consumer-verification/`, `scripts/`, `docker/`, and any `@internal` or undocumented member. Visible in the repository does not mean supported.
 
 ### 5.13 Management — Translation Key Preview
 
-To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Construct `Management\Service\TranslationKeyPreviewService` with the Host's I18n PDO and clock. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
+To enable preview management, apply the [optional preview schema](schema/translation-key-preview.sql) separately on a fresh or existing installation. Pass the Host PDO to the supported `MysqlTranslationKeyPreviewRepository` and inject the repository and clock into `Management\Service\TranslationKeyPreviewService`. The service also accepts a PDO as its first argument for RC.2 compatibility. Call `activate($targets, $expiresAt)` to create a preview, `getActive($id)` to read its current state, and `deactivate($id)` to stop it. A missing, expired, or stopped preview returns `null` from `getActive()`.
 
 The Host authorizes these operations and controls which requests can use a preview. See [Optional Translation Key Preview](#81-optional-translation-key-preview) for the storage, expiry, and rendering contracts.
 
@@ -399,7 +399,7 @@ Duplicate races end in the Package exception, never a raw PDO error: the databas
 | `TranslationKeyPreviewDTO::labelFor(scope, domain, key)` | Returns `scope.domain.key` on a match and null otherwise. The label is for display. Keep the three components separate when matching. |
 | `TranslationKeyPreviewDTO::applyToDomain(scope, domain, messages)` | Replaces matching values without mutating the source map or introducing new entries. |
 
-Construct `TranslationKeyPreviewService` with a `TranslationKeyPreviewRepositoryInterface` and a clock. `MysqlTranslationKeyPreviewRepository` is the built-in implementation and accepts the Host PDO. A PDO argument remains accepted by the RC.2 compatibility constructor. Preview reads and writes use the supplied connection and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
+Construct `TranslationKeyPreviewService` with a `TranslationKeyPreviewRepositoryInterface` and a clock. `MysqlTranslationKeyPreviewRepository(PDO)` is the supported built-in implementation. The service also accepts a PDO as its first argument for RC.2 compatibility. Preview reads and writes use the supplied connection and honor its transaction boundaries. Preview changes affect new snapshots once visible to the reading connection. The Host supplies the clock and applies the feature only in authorized presentation paths. The existing Consumer and Management read APIs keep their normal behavior. See the [usage guide](docs/guides/USAGE_GUIDE.md#12-translation-key-preview) for PHP and JavaScript wiring.
 
 ## 9. Consumer Workflow
 

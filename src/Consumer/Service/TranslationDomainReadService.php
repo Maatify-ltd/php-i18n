@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maatify\I18n\Consumer\Service;
 
 use Maatify\I18n\Repository\ExactTranslationReadRepositoryInterface;
+use Maatify\I18n\Repository\GovernedDomainReadRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\Consumer\DTO\TranslationDomainTranslationsDTO;
@@ -67,7 +68,14 @@ final readonly class TranslationDomainReadService
             return new TranslationDomainTranslationsDTO([]);
         }
 
-        // 1) Enforce governance
+        if ($this->translationRepository instanceof GovernedDomainReadRepositoryInterface
+            && $this->translationRepository->canReadKeysFrom($this->keyRepository)
+            && ($mode = $this->policyService->joinedReadMode($this->translationRepository)) !== null
+        ) {
+            return $this->translationRepository->readGovernedDomainTranslations($exactCode->value(), $scope, $domain, $mode);
+        }
+
+        // Custom sources retain the Host-owned coordination boundary.
         if (!$this->policyService->isScopeAndDomainReadable($scope, $domain)) {
             return new TranslationDomainTranslationsDTO([]);
         }
@@ -78,7 +86,6 @@ final readonly class TranslationDomainReadService
             return $this->translationRepository->readDomainTranslations($exactCode->value(), $scope, $domain);
         }
 
-        // 2) Resolve keys for (scope + domain)
         $keys = $this->keyRepository->listByScopeAndDomain(
             scope : $scope,
             domain: $domain,

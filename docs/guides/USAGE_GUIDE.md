@@ -238,14 +238,15 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 
 ## 12. Translation Key Preview
 
-Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Pass your I18n PDO to `MysqlTranslationKeyPreviewRepository` and inject it with your clock into `TranslationKeyPreviewService`. The same PDO lets Host-owned transactions include preview writes.
+Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Create the built-in `MysqlTranslationKeyPreviewRepository` with your I18n PDO, then pass the repository and clock to `TranslationKeyPreviewService`. The same PDO lets Host-owned transactions include preview writes. The service also accepts a PDO as its first argument for RC.2 compatibility.
 
 ```php
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 
-$previews = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($pdo), $clock);
+$previewRepository = new MysqlTranslationKeyPreviewRepository($pdo);
+$previews = new TranslationKeyPreviewService($previewRepository, $clock);
 
 // In the authorized management action:
 $created = $previews->activate([

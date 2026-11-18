@@ -8,18 +8,21 @@ use Closure;
 use PDO;
 use PDOStatement;
 
-/** Runs a competing transaction after MySQL returns key rows to the reader. */
-final class AfterKeyReadStatement extends PDOStatement
+/** Runs a competing transaction after fetching rows for the selected MySQL statement. */
+final class AfterSelectedReadStatement extends PDOStatement
 {
-    /** @param Closure():void $afterKeyRead */
-    protected function __construct(private readonly Closure $afterKeyRead) {}
+    /** @param Closure():void $afterRead */
+    protected function __construct(
+        private readonly Closure $afterRead,
+        private readonly string $table = 'maa_i18n_keys',
+    ) {}
 
     public function fetch(int $mode = PDO::FETCH_DEFAULT, int $cursorOrientation = PDO::FETCH_ORI_NEXT, int $cursorOffset = 0): mixed
     {
         $row = parent::fetch($mode, $cursorOrientation, $cursorOffset);
 
-        if ($row !== false && str_contains($this->queryString, 'FROM maa_i18n_keys')) {
-            ($this->afterKeyRead)();
+        if ($row !== false && str_contains($this->queryString, $this->table)) {
+            ($this->afterRead)();
         }
 
         return $row;
@@ -30,8 +33,8 @@ final class AfterKeyReadStatement extends PDOStatement
     {
         $rows = parent::fetchAll($mode, ...$args);
 
-        if ($rows !== [] && str_contains($this->queryString, 'FROM maa_i18n_keys')) {
-            ($this->afterKeyRead)();
+        if ($rows !== [] && str_contains($this->queryString, $this->table)) {
+            ($this->afterRead)();
         }
 
         return $rows;

@@ -9,9 +9,14 @@ use Maatify\I18n\Consumer\DTO\TranslationValueDTO;
 use Maatify\I18n\DTO\TranslationCollectionDTO;
 use Maatify\I18n\DTO\TranslationDTO;
 use Maatify\I18n\DTO\TranslationUpsertResultDTO;
+use Maatify\I18n\Enum\I18nPolicyModeEnum;
+use Maatify\I18n\Exception\I18nStorageException;
 use Maatify\I18n\Exception\LanguageCodeAlreadyInUseException;
-use Maatify\I18n\Repository\ExactTranslationReadRepositoryInterface;
+use Maatify\I18n\Repository\DomainRepositoryInterface;
+use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
+use Maatify\I18n\Repository\GovernedDomainReadRepositoryInterface;
 use Maatify\I18n\Repository\GuardedLanguageRekeyRepositoryInterface;
+use Maatify\I18n\Repository\ScopeRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\ValueObject\LanguageCode;
 use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
@@ -21,7 +26,7 @@ use PDO;
 /**
  * Persists and reads translation records through the package-owned MySQL schema.
  */
-final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyRepositoryInterface, ExactTranslationReadRepositoryInterface
+final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyRepositoryInterface, GovernedDomainReadRepositoryInterface
 {
     private const COLUMNS = 'id, key_id, language_code, value, type, created_at, updated_at';
 
@@ -131,6 +136,67 @@ final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyR
             && $keyRepository->usesConnection($this->gateway->pdo());
     }
 
+    /** Match the built-in governance repositories on the same PDO. */
+    public function canReadGovernanceFrom(
+        ScopeRepositoryInterface $scopes,
+        DomainRepositoryInterface $domains,
+        DomainScopeRepositoryInterface $assignments,
+    ): bool {
+        $pdo = $this->gateway->pdo();
+
+        return $scopes instanceof MysqlScopeRepository
+            && $domains instanceof MysqlDomainRepository
+            && $assignments instanceof MysqlDomainScopeRepository
+            && $scopes->usesConnection($pdo)
+            && $domains->usesConnection($pdo)
+            && $assignments->usesConnection($pdo);
+    }
+
+    /**
+     * Read the governance facts, keys and translations in one statement, even
+     * under READ COMMITTED. The left joins retain a governance row when the
+     * domain is empty or denied, so invalid stored activity still raises.
+     */
+    public function readGovernedDomainTranslations(
+        ?string $languageCode,
+        string $scope,
+        string $domain,
+        I18nPolicyModeEnum $mode,
+    ): TranslationDomainTranslationsDTO {
+        $rows = $this->gateway->fetchAll(
+            'SELECT s.is_active AS scope_active, d.is_active AS domain_active,
+                    k.id, k.key_part, t.id AS translation_id, t.value, t.type
+             FROM (SELECT :permissive AS permissive) AS request
+             LEFT JOIN maa_i18n_scopes s ON s.code = :scope_policy
+             LEFT JOIN maa_i18n_domains d ON d.code = :domain_policy
+             LEFT JOIN maa_i18n_domain_scopes a ON a.scope_code = s.code AND a.domain_code = d.code
+             LEFT JOIN maa_i18n_keys k ON k.scope = :scope_keys AND k.domain = :domain_keys
+                AND (s.is_active = 1 OR (request.permissive = 1 AND s.id IS NULL))
+                AND (d.is_active = 1 OR (request.permissive = 1 AND d.id IS NULL))
+                AND (a.id IS NOT NULL OR (request.permissive = 1 AND (s.id IS NULL OR d.id IS NULL)))
+             LEFT JOIN maa_i18n_translations t ON t.key_id = k.id AND t.language_code_identity = :identity
+             ORDER BY k.key_part ASC',
+            ([
+                'permissive' => $mode === I18nPolicyModeEnum::PERMISSIVE ? 1 : 0,
+                'scope_policy' => $scope,
+                'domain_policy' => $domain,
+                'scope_keys' => $scope,
+                'domain_keys' => $domain,
+                'identity' => LanguageCode::fromNullable($languageCode)->identity(),
+            ]),
+            'translation.readGovernedDomain',
+        );
+
+        $governance = $rows[0] ?? throw new I18nStorageException('translation.readGovernedDomain:governance');
+        foreach (['scope_active', 'domain_active'] as $column) {
+            if (!array_key_exists($column, $governance) || $governance[$column] !== null) {
+                Row::bool($governance, $column);
+            }
+        }
+
+        return $this->mapDomainValues($rows);
+    }
+
     /** Read the structured key and its exact-language value in a single statement. */
     public function readStructuredTranslation(
         ?string $languageCode,
@@ -176,8 +242,22 @@ final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyR
             'translation.readDomain',
         );
 
+        return $this->mapDomainValues($rows);
+    }
+
+    /**
+     * Skip the governance-only row of a denied or empty domain.
+     *
+     * @param list<array<string, mixed>> $rows
+     */
+    private function mapDomainValues(array $rows): TranslationDomainTranslationsDTO
+    {
         $translations = [];
         foreach ($rows as $row) {
+            if (array_key_exists('id', $row) && $row['id'] === null) {
+                continue;
+            }
+
             $value = $this->valueForKeyRow($row);
             if ($value !== null) {
                 $translations[Row::string($row, 'key_part')] = $value;
