@@ -226,12 +226,12 @@ final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyR
     }
 
     /**
-     * Acquire bounded InnoDB row locks in slot order. A duplicate no-op still
-     * takes the existing row's write lock until the active transaction ends.
+     * Acquire language slots 1–255 in order. Slot 0 coordinates summary writes.
+     * A duplicate no-op still takes the existing row's write lock until the active transaction ends.
      */
     private function lockLanguageWrites(LanguageCode ...$languages): void
     {
-        $slots = array_map(static fn(LanguageCode $code): int => ord(hash('sha256', $code->identity(), true)[0]), $languages);
+        $slots = array_map(static fn(LanguageCode $code): int => 1 + ord(hash('sha256', $code->identity(), true)[0]) % 255, $languages);
         sort($slots, SORT_NUMERIC);
 
         foreach (array_unique($slots) as $slot) {

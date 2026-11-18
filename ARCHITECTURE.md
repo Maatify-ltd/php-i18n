@@ -121,3 +121,5 @@ The package utilizes a **Strong Consistency** model.
 The Host owns: the language registry, ID -> code resolution, locale selection, fallback, semantic validation of codes, and composition of language names/icons/active flags with I18n exact-scope counts. When a Host renames a language code it must call `TranslationWriteService::rekeyLanguageCode()` in the same transaction as its own rename; I18n never edits Host language data.
 
 For optional previews, the Host authorizes management operations and selects which requests can use a preview. It bypasses reads and writes in shared page and CDN caches for preview requests.
+
+Key and translation mutations acquire the built-in summary write lock before authoritative changes. The owning transaction retains it through commit or rollback, including for a full rebuild.

@@ -191,12 +191,11 @@ final class ConcurrencyTest extends MysqlIntegrationTestCase
 
     // ── B. duplicate-key race classification ───────────────────────────────
 
-    public function testAKeyDuplicateRacePastThePrecheckSurfacesAsTheSemanticException(): void
+    public function testAKeyDuplicateRaceSurfacesAsTheSemanticException(): void
     {
         $pdo = $this->pdo();
         $pdo->beginTransaction();
-        // A inserted the identity but has not committed: B's pre-check cannot see
-        // it, B's INSERT blocks on the unique index and then loses the race.
+        // B waits for the writer's transaction and classifies the committed duplicate.
         $this->createKey('ct', 'home', 'dup');
 
         $worker = $this->worker('createKey', ['scope' => 'ct', 'domain' => 'home', 'key' => 'dup']);

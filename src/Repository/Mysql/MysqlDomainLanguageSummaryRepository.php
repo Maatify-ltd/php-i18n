@@ -4,24 +4,43 @@ declare(strict_types=1);
 
 namespace Maatify\I18n\Repository\Mysql;
 
-use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
+use Maatify\I18n\Exception\I18nStorageException;
+use Maatify\I18n\Repository\SerializedDomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\ValueObject\LanguageCode;
 use PDO;
 
 /**
  * Exact-scope derived summary (ADR-019).
  *
- * Every statement reads only maa_i18n_keys / maa_i18n_translations /
+ * Summary queries use only maa_i18n_keys / maa_i18n_translations /
  * maa_i18n_domain_language_summary. It never reads a Host language table and never
- * materializes a row for a language that has no translations.
+ * materializes a summary row for a language that has no translations. Summary
+ * writers use the reserved slot in maa_i18n_language_write_locks.
  */
-final readonly class MysqlDomainLanguageSummaryRepository implements DomainLanguageSummaryRepositoryInterface
+final readonly class MysqlDomainLanguageSummaryRepository implements SerializedDomainLanguageSummaryRepositoryInterface
 {
     private PdoGateway $gateway;
 
     public function __construct(PDO $pdo)
     {
         $this->gateway = new PdoGateway($pdo);
+    }
+
+    /**
+     * Lock the reserved summary slot until the caller's transaction ends.
+     */
+    public function lockSummaryWrites(): void
+    {
+        if (!$this->gateway->pdo()->inTransaction()) {
+            throw new I18nStorageException('summary.lockWrites:transaction');
+        }
+
+        $this->gateway->write(
+            'INSERT INTO maa_i18n_language_write_locks (id) VALUES (0)
+             ON DUPLICATE KEY UPDATE id = id',
+            [],
+            'summary.lockWrites',
+        );
     }
 
     /* ==========================================================

@@ -7,6 +7,7 @@ namespace Maatify\I18n\Service;
 use Maatify\I18n\Enum\LockModeEnum;
 use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\KeyStatsRepositoryInterface;
+use Maatify\I18n\Repository\SerializedDomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\Exception\InvalidLanguageCodeException;
@@ -23,6 +24,14 @@ final readonly class MissingCounterService
         private TranslationKeyRepositoryInterface $keyRepository,
         private KeyStatsRepositoryInterface $keyStatsRepository,
     ) {}
+
+    /** Hold the repository's summary-write lock before beginning the mutation. */
+    public function lockSummaryWrites(): void
+    {
+        if ($this->summaryRepository instanceof SerializedDomainLanguageSummaryRepositoryInterface) {
+            $this->summaryRepository->lockSummaryWrites();
+        }
+    }
 
     /**
      * Adds the key to existing summary rows and creates its zeroed key-stats

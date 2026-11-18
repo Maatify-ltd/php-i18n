@@ -8,6 +8,8 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Maatify\I18n\Exception\InvalidLanguageCodeException;
 use Maatify\I18n\Exception\LanguageCodeAlreadyInUseException;
+use Maatify\I18n\Management\Command\CreateKeyCommand;
+use Maatify\I18n\Management\Command\RenameKeyCommand;
 use Maatify\I18n\Management\Command\UpsertTranslationCommand;
 use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Service\TranslationWriteService;
@@ -174,10 +176,10 @@ final class TranslationWriteIntegrityTest extends MysqlIntegrationTestCase
 
         try {
             self::assertSame(1, $this->writerOn($owner)->rekeyLanguageCode('old', 'new'));
-            $writer = $this->writerOn($contender);
+            $translations = new MysqlTranslationRepository($contender, $this->fixedClock());
             foreach (['old', 'new'] as $code) {
                 try {
-                    $writer->upsertTranslation(new UpsertTranslationCommand($code, $second, 'concurrent', null));
+                    $translations->upsert($code, $second, 'concurrent', null);
                     self::fail('Expected the language write lock to be held by the host transaction.');
                 } catch (PDOException $failure) {
                     self::assertSame(1205, $failure->errorInfo[1] ?? null);
@@ -186,7 +188,7 @@ final class TranslationWriteIntegrityTest extends MysqlIntegrationTestCase
             }
             self::assertTrue($owner->commit());
 
-            $writer->upsertTranslation(new UpsertTranslationCommand('new', $second, 'after commit', null));
+            $this->writerOn($contender)->upsertTranslation(new UpsertTranslationCommand('new', $second, 'after commit', null));
             self::assertSame('to move', $this->reader->getValue('new', 'ct', 'home', 'first'));
             self::assertSame('after commit', $this->reader->getValue('new', 'ct', 'home', 'second'));
             self::assertSame(2, $this->summary->getRow('ct', 'home', 'new')['translated_count'] ?? null);
@@ -239,6 +241,74 @@ final class TranslationWriteIntegrityTest extends MysqlIntegrationTestCase
         self::assertNull($this->summary->getRow('ct', 'home', 'ar'));
         self::assertNull($this->summary->getRow('ct', 'next', 'ar'));
         self::assertSame(0, $this->scalarInt('SELECT translated_count FROM maa_i18n_key_stats WHERE key_id=' . $keyId));
+    }
+
+    public function testFirstTranslationWaitsForAConcurrentKeyCreateAtReadCommitted(): void
+    {
+        $first = $this->createKey('ct', 'home', 'first');
+        $owner = self::newConnection();
+        $contender = self::newConnection();
+        $owner->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $contender->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $contender->exec('SET SESSION innodb_lock_wait_timeout = 1');
+        $writer = $this->writerOn($contender);
+        $command = new UpsertTranslationCommand('ar', $first, 'hello', null);
+        $owner->beginTransaction();
+
+        try {
+            $this->writerOn($owner)->createKey(new CreateKeyCommand('ct', 'home', 'second'));
+            try {
+                $writer->upsertTranslation($command);
+                self::fail('The translation must wait for the pending key creation.');
+            } catch (PDOException $failure) {
+                self::assertSame(1205, $failure->errorInfo[1] ?? null);
+                self::assertFalse($contender->inTransaction());
+            }
+
+            self::assertNull($this->summary->getRow('ct', 'home', 'ar'));
+            self::assertTrue($owner->commit());
+        } finally {
+            if ($owner->inTransaction()) {
+                $owner->rollBack();
+            }
+        }
+
+        $writer->upsertTranslation($command);
+        self::assertSame(
+            ['total_keys' => 2, 'translated_count' => 1, 'missing_count' => 1],
+            $this->summary->getRow('ct', 'home', 'ar'),
+        );
+    }
+
+    public function testCreateAndRenameUseCurrentUniquenessWithAnOuterSnapshot(): void
+    {
+        $first = $this->createKey('ct', 'home', 'first');
+        $oldCreate = $this->createKey('ct', 'home', 'create-destination');
+        $oldRename = $this->createKey('ct', 'home', 'rename-destination');
+        $owner = self::newConnection();
+        $owner->exec('SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+        $keys = new MysqlTranslationKeyRepository($owner);
+        $writer = $this->writerOn($owner);
+        $owner->beginTransaction();
+
+        try {
+            self::assertSame($oldCreate, $keys->getByStructuredKey('ct', 'home', 'create-destination')?->id);
+            self::assertSame($oldRename, $keys->getByStructuredKey('ct', 'home', 'rename-destination')?->id);
+            $this->renameKey($oldCreate, 'ct', 'home', 'moved-create');
+            $this->renameKey($oldRename, 'ct', 'home', 'moved-rename');
+            $created = $writer->createKey(new CreateKeyCommand('ct', 'home', 'create-destination'));
+            $writer->renameKey(new RenameKeyCommand($first, 'ct', 'home', 'rename-destination'));
+            self::assertTrue($owner->commit());
+        } finally {
+            if ($owner->inTransaction()) {
+                $owner->rollBack();
+            }
+        }
+
+        self::assertSame($created, $this->keys->getByStructuredKey('ct', 'home', 'create-destination')?->id);
+        self::assertSame($first, $this->keys->getByStructuredKey('ct', 'home', 'rename-destination')?->id);
+        self::assertSame($oldCreate, $this->keys->getByStructuredKey('ct', 'home', 'moved-create')?->id);
+        self::assertSame($oldRename, $this->keys->getByStructuredKey('ct', 'home', 'moved-rename')?->id);
     }
 
     private function writerOn(PDO $pdo): TranslationWriteService

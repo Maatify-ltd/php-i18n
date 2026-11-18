@@ -56,6 +56,6 @@ ALTER TABLE maa_i18n_domain_language_summary
 
 CREATE TABLE IF NOT EXISTS maa_i18n_language_write_locks (
     id TINYINT UNSIGNED NOT NULL PRIMARY KEY
-        COMMENT 'Stable language write lock slot from 0 to 255'
+        COMMENT 'Slot 0 coordinates summaries; slots 1 to 255 coordinate language writes'
 ) ENGINE=InnoDB
-    COMMENT='Internal transaction locks for translation writes and language re-keying (ADR-024)';
+    COMMENT='Internal transaction locks for translation writes, re-keying and summaries (ADR-024)';
