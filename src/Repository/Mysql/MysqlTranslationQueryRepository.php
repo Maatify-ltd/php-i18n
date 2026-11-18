@@ -142,7 +142,7 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
         $codeTable = static function (string $prefix) use ($codes): array {
             if ($codes === []) {
                 return [
-                    'SELECT CAST(NULL AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_bin AS language_code FROM DUAL WHERE 1 = 0',
+                    'SELECT CAST(NULL AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_bin AS language_code FROM DUAL WHERE 1 = 0',
                     [],
                 ];
             }
@@ -151,7 +151,7 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
             $params = [];
             foreach ($codes as $i => $code) {
                 $name = $prefix . $i;
-                $parts[] = 'SELECT CAST(:' . $name . ' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_bin'
+                $parts[] = 'SELECT CAST(:' . $name . ' AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_0900_bin'
                     . ($i === 0 ? ' AS language_code' : '');
                 $params[$name] = $code;
             }

@@ -41,7 +41,7 @@ Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At prepa
 - **Exact language scopes:** reads and writes address one exact `language_code` (or `NULL`, the unlocalized scope). No fallback, default or wildcard inside I18n; fallback is Host policy.
 - **Fail-soft reads, fail-hard writes:** a runtime miss returns `null` or an empty DTO; a write violating governance throws a typed exception.
 - **Synchronous derived state:** per-domain, per-language summary and per-key counters are updated in the same transaction and are rebuildable.
-- **Package-owned persistence:** seven core `maa_i18n_*` tables; no foreign key to, and no join with, any Host table.
+- **Package-owned persistence:** eight core `maa_i18n_*` tables; no foreign key to, and no join with, any Host table.
 - **Shared transaction semantics:** transactions, ordering and pagination come from `maatify/php-persistence`; an outer transaction on the same connection is joined, never committed or rolled back by I18n.
 - **Container-free Core:** plain constructor wiring; an optional PHP-DI adapter is available but never required.
 
@@ -67,7 +67,7 @@ The exact command below resolves once `1.0.0-rc.3` is published on Packagist. Ex
 composer require maatify/php-i18n:1.0.0-rc.3@RC maatify/php-persistence:1.0.0-rc.2@RC
 ```
 
-For a fresh installation, create the database objects once, on a fresh database, from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the seven tables, so never apply it over existing I18n data.
+For a fresh installation, create the database objects once from [schema/schema.i18n.sql](schema/schema.i18n.sql). The file begins with `DROP TABLE IF EXISTS` for the eight tables, so never apply it over existing I18n data. For an existing RC.1 or RC.2 database, follow the [RC.3 upgrade procedure](docs/guides/USAGE_GUIDE.md#rc3-schema-upgrade).
 
 ## Quick Usage
 
@@ -142,7 +142,7 @@ Maintained examples cover every material capability and run against a disposable
 
 ## Schema
 
-[schema/schema.i18n.sql](schema/schema.i18n.sql) is the fresh-install schema authority: `maa_i18n_scopes`, `maa_i18n_domains`, `maa_i18n_domain_scopes`, `maa_i18n_keys`, `maa_i18n_translations`, `maa_i18n_domain_language_summary` (derived), `maa_i18n_key_stats` (derived). Ownership and semantics: [Reference section 8](I18N_PACKAGE_REFERENCE.md#8-persistence-and-schema).
+[schema/schema.i18n.sql](schema/schema.i18n.sql) is the fresh-install schema authority: `maa_i18n_scopes`, `maa_i18n_domains`, `maa_i18n_domain_scopes`, `maa_i18n_keys`, `maa_i18n_translations`, `maa_i18n_domain_language_summary` (derived), `maa_i18n_key_stats` (derived), and `maa_i18n_language_write_locks` (internal). Ownership and semantics: [Reference section 8](I18N_PACKAGE_REFERENCE.md#8-persistence-and-schema).
 
 ## Documentation
 

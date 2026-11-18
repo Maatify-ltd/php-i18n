@@ -14,6 +14,7 @@ use Maatify\I18n\Exception\TranslationUpsertFailedException;
 use Maatify\I18n\Management\Command\CreateKeyCommand;
 use Maatify\I18n\Management\Command\RenameKeyCommand;
 use Maatify\I18n\Management\Command\UpsertTranslationCommand;
+use Maatify\I18n\Repository\GuardedLanguageRekeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\Service\I18nGovernancePolicyService;
@@ -173,6 +174,7 @@ final readonly class TranslationWriteService
      * the language exists / is active / is supported is Host policy.
      *
      * @throws TranslationKeyNotFoundException
+     * @throws \PDOException when the MySQL write or transaction fails
      */
     public function upsertTranslation(UpsertTranslationCommand $command): int
     {
@@ -278,7 +280,9 @@ final readonly class TranslationWriteService
 
         return $this->tx->run(function () use ($oldCode, $newCode): int {
 
-            if ($this->translationRepository->hasAnyForLanguage($newCode)) {
+            if (!$this->translationRepository instanceof GuardedLanguageRekeyRepositoryInterface
+                && $this->translationRepository->hasAnyForLanguage($newCode)
+            ) {
                 throw new LanguageCodeAlreadyInUseException($newCode);
             }
 

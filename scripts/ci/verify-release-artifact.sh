@@ -25,7 +25,8 @@ for format in git composer; do
 
     for required in composer.json README.md CHANGELOG.md SECURITY.md LICENSE llms.txt \
         I18N_PACKAGE_REFERENCE.md docs/guides/USAGE_GUIDE.md examples/07-translation-key-preview.php \
-        schema/schema.i18n.sql schema/translation-key-preview.sql src/Management/Service/TranslationKeyPreviewService.php; do
+        schema/schema.i18n.sql schema/translation-key-preview.sql schema/migrations/2026-11-18-exact-language-writes.sql \
+        src/Management/Service/TranslationKeyPreviewService.php; do
         test -f "${artifact}/${required}" || { echo "${format}: missing ${required}" >&2; exit 1; }
     done
     for excluded in .git vendor composer.lock consumer-verification/vendor consumer-verification/composer.lock \

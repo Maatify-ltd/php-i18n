@@ -3,7 +3,7 @@
 > **Naming note (current namespace).** This record was written when the tables were unprefixed (`i18n_*`).
 > The Package-owned tables are now `maa_i18n_scopes`, `maa_i18n_domains`, `maa_i18n_domain_scopes`,
 > `maa_i18n_keys`, `maa_i18n_translations`, `maa_i18n_domain_language_summary`, `maa_i18n_key_stats`.
-> The decision below is unchanged.
+> The logical identity decision below is unchanged. [ADR-024](ADR-024-exact-language-write-integrity.md) records the current collation and transaction-level write protection.
 
 **Status:** ACCEPTED
 **Date:** 2026-09-30

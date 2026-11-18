@@ -12,6 +12,14 @@ composer require maatify/php-i18n:1.0.0-rc.3@RC maatify/php-persistence:1.0.0-rc
 
 For the earlier releases, see the [`1.0.0-rc.2` guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.2/docs/guides/USAGE_GUIDE.md) or the [`1.0.0-rc.1` guide](https://github.com/Maatify-ltd/php-i18n/blob/v1.0.0-rc.1/docs/guides/USAGE_GUIDE.md).
 
+### RC.3 schema upgrade
+
+For an existing RC.1 or RC.2 database, back up the I18n tables and pause traffic from the previous version. Apply [the exact-language migration](../../schema/migrations/2026-11-18-exact-language-writes.sql) to the I18n database before enabling RC.3. Run the migration outside an open transaction with a MySQL client that stops on the first error.
+
+The migration checks both translation and summary rows for whitespace-only language codes before applying persistent DDL. If it stops there, review the affected codes and resolve them under Host policy before retrying. The migration preserves valid codes and values byte for byte, including trailing spaces. The two ALTER statements commit separately, so keep traffic paused until the whole migration succeeds. Re-running the migration after a partial DDL failure is safe.
+
+After the migration, run `I18nStatsRebuilder::fullRebuild()` with write traffic still paused to rebuild summaries and counters from the stored translations. The rebuild uses existing authoritative rows and cannot restore values overwritten by the previous collation.
+
 ## 1. Fit, Requirements and Boundaries
 
 **Use I18n when** you want database-driven, governed translations: keys are structured as `scope.domain.key_part`, a key can only exist inside an assigned `(scope, domain)`, and values are stored per exact language code in MySQL.
@@ -20,7 +28,7 @@ For the earlier releases, see the [`1.0.0-rc.2` guide](https://github.com/Maatif
 
 - For the checkout used in these examples, PHP `>=8.4.27 <8.5.0 || >=8.5.12 <8.6.0` with `ext-pdo`, `ext-pdo_mysql` and `ext-mbstring`. See [composer.json](../../composer.json) for the checkout requirements.
 - a MySQL database and a `PDO` connection with `PDO::ERRMODE_EXCEPTION`;
-- the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the seven `maa_i18n_*` tables, so never apply it over live data);
+- the canonical schema applied once to a fresh database: [schema/schema.i18n.sql](../../schema/schema.i18n.sql) (it starts with `DROP TABLE IF EXISTS` for the eight `maa_i18n_*` tables, so never apply it over live data);
 - a clock implementing `Maatify\SharedCommon\Contracts\ClockInterface` (for example `SystemClock`).
 
 **I18n does not:** own languages or locale selection, fall back to another language, cache, load files, delete keys, or ship a migration framework. ([Reference section 11](../../I18N_PACKAGE_REFERENCE.md#11-host-owned-responsibilities))

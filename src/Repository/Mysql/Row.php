@@ -17,13 +17,31 @@ final class Row
      */
     public static function int(array $row, string $column): int
     {
-        $value = $row[$column] ?? null;
+        return self::parseInt($row[$column] ?? null, 'hydrate:' . $column);
+    }
 
-        if (is_int($value) || (is_string($value) && is_numeric($value))) {
-            return (int) $value;
+    /** Reject unrepresentable database integers before PHP can clamp them. */
+    public static function parseInt(mixed $value, string $operation): int
+    {
+        if (is_int($value)) {
+            return $value;
         }
 
-        throw new I18nStorageException('hydrate:' . $column);
+        if (!is_string($value) || preg_match('/^-?[0-9]+$/D', $value) !== 1) {
+            throw new I18nStorageException($operation);
+        }
+
+        $negative = str_starts_with($value, '-');
+        $digits = ltrim($negative ? substr($value, 1) : $value, '0');
+        $limit = $negative ? substr((string) PHP_INT_MIN, 1) : (string) PHP_INT_MAX;
+
+        if (strlen($digits) > strlen($limit)
+            || (strlen($digits) === strlen($limit) && strcmp($digits, $limit) > 0)
+        ) {
+            throw new I18nStorageException($operation);
+        }
+
+        return (int) $value;
     }
 
     /**

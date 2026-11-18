@@ -56,7 +56,9 @@ final readonly class LanguageCode
      */
     public static function tryFromNullable(?string $code): ?self
     {
-        if ($code !== null && (trim($code) === '' || mb_strlen($code) > self::MAX_LENGTH)) {
+        if ($code !== null && (preg_match('/^[\p{Z}\x{0009}-\x{000D}\x{0085}]*$/uD', $code) !== 0
+            || mb_strlen($code, 'UTF-8') > self::MAX_LENGTH
+        )) {
             return null;
         }
 

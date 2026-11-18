@@ -220,13 +220,14 @@ try {
     );
     sort($tables);
     same(
-        'the canonical schema creates exactly the seven core Package tables',
+        'the canonical schema creates exactly the eight core Package tables',
         ([
             'maa_i18n_domain_language_summary',
             'maa_i18n_domain_scopes',
             'maa_i18n_domains',
             'maa_i18n_key_stats',
             'maa_i18n_keys',
+            'maa_i18n_language_write_locks',
             'maa_i18n_scopes',
             'maa_i18n_translations',
         ]),

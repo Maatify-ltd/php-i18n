@@ -49,6 +49,7 @@ abstract class MysqlIntegrationTestCase extends TestCase
         'maa_i18n_key_stats',
         'maa_i18n_translations',
         'maa_i18n_keys',
+        'maa_i18n_language_write_locks',
         'maa_i18n_domain_scopes',
         'maa_i18n_domains',
         'maa_i18n_scopes',
@@ -189,12 +190,12 @@ abstract class MysqlIntegrationTestCase extends TestCase
      * A NEW real connection (own server session) to the same temporary
      * schema. Used to prove locking / concurrency semantics.
      */
-    protected static function newConnection(): PDO
+    protected static function newConnection(bool $foundRows = false): PDO
     {
         $credentials = MysqlTestEnvironment::credentials();
         self::assertNotNull($credentials);
 
-        $pdo = MysqlTestEnvironment::connect($credentials);
+        $pdo = MysqlTestEnvironment::connect($credentials, $foundRows);
         $pdo->exec('USE `' . self::$schema . '`');
 
         return $pdo;

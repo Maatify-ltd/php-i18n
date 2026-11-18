@@ -17,6 +17,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - Propagate Ordering storage failures as `I18nStorageException` with the original Persistence cause.
+- Protect language re-keying from stale snapshots and concurrent translation writers.
+- Preserve trailing spaces in language identity and reject whitespace-only language codes.
+- Keep translated counts correct on unchanged upserts with PDO found-rows enabled.
+- Reject stored integers and generated IDs outside the PHP integer range.
+
+Existing RC installations need the [RC.3 schema upgrade](docs/guides/USAGE_GUIDE.md#rc3-schema-upgrade).
 
 ## [1.0.0-rc.2] - 2026-11-14
 

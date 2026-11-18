@@ -5,6 +5,7 @@ SET FOREIGN_KEY_CHECKS=0;
  * =========================== */
 DROP TABLE IF EXISTS maa_i18n_domain_language_summary;
 DROP TABLE IF EXISTS maa_i18n_key_stats;
+DROP TABLE IF EXISTS maa_i18n_language_write_locks;
 DROP TABLE IF EXISTS maa_i18n_translations;
 DROP TABLE IF EXISTS maa_i18n_keys;
 DROP TABLE IF EXISTS maa_i18n_domain_scopes;
@@ -17,7 +18,7 @@ SET FOREIGN_KEY_CHECKS=1;
  * I18N PACKAGE — TRANSLATION LAYER SCHEMA
  * ----------------------------------------------------------
  * Authoritative fresh-install schema of the I18n package.
- * Seven core package tables (`maa_i18n_` prefix):
+ * Eight core package tables (`maa_i18n_` prefix):
  *   maa_i18n_scopes
  *   maa_i18n_domains
  *   maa_i18n_domain_scopes
@@ -25,6 +26,7 @@ SET FOREIGN_KEY_CHECKS=1;
  *   maa_i18n_translations
  *   maa_i18n_domain_language_summary   (derived)
  *   maa_i18n_key_stats                 (derived)
+ *   maa_i18n_language_write_locks      (internal serialization)
  *
  * Install the optional preview table separately using
  * schema/translation-key-preview.sql.
@@ -239,7 +241,7 @@ CREATE TABLE maa_i18n_keys (
  * - language_code 'ar'  = exact 'ar' scope
  * - No fallback / default / wildcard semantics
  * - Non-NULL code: not empty, not whitespace-only, <= 16 chars
- * - Code is stored as-is (binary collation: 'ar' <> 'AR');
+ * - Code is stored as-is (NO PAD binary collation);
  *   no normalization
  * - Only FK is the internal key_id -> maa_i18n_keys. NO FK to any
  *   Host language table; the Host owns language semantics.
@@ -262,10 +264,10 @@ CREATE TABLE maa_i18n_translations (
     key_id BIGINT UNSIGNED NOT NULL
         COMMENT 'Owning translation key (maa_i18n_keys.id)',
     language_code VARCHAR(16)
-        CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL
+        CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL
         COMMENT 'Exact Host-owned language code, NULL = exact unlocalized scope (ADR-019)',
     language_code_identity VARCHAR(16)
-        CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+        CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin
         GENERATED ALWAYS AS (COALESCE(language_code, '')) STORED
         COMMENT 'NULL-safe identity of language_code (NULL maps to empty string)',
 
@@ -286,7 +288,13 @@ CREATE TABLE maa_i18n_translations (
     KEY idx_maa_i18n_translations_key_id (key_id),
 
     CONSTRAINT chk_maa_i18n_translations_language_code
-        CHECK (language_code IS NULL OR (CHAR_LENGTH(TRIM(language_code)) > 0 AND CHAR_LENGTH(language_code) <= 16)),
+        CHECK (language_code IS NULL OR (
+            CHAR_LENGTH(language_code) BETWEEN 1 AND 16
+            AND language_code NOT REGEXP CONCAT(
+                '^[[:space:]', CONVERT(CHAR(11) USING utf8mb4), CONVERT(CHAR(12) USING utf8mb4),
+                CONVERT(0xC285 USING utf8mb4), CONVERT(CHAR(92) USING utf8mb4), 'p{Z}]*$'
+            )
+        )),
     CONSTRAINT chk_maa_i18n_translations_type
         CHECK (
             type IS NULL OR (
@@ -354,10 +362,10 @@ CREATE TABLE maa_i18n_domain_language_summary (
         COMMENT 'Domain code of the summarized keys',
 
     language_code VARCHAR(16)
-        CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NULL
+        CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin NULL
         COMMENT 'Exact Host-owned language code, NULL = exact unlocalized scope (ADR-019)',
     language_code_identity VARCHAR(16)
-        CHARACTER SET utf8mb4 COLLATE utf8mb4_bin
+        CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin
         GENERATED ALWAYS AS (COALESCE(language_code, '')) STORED
         COMMENT 'NULL-safe identity of language_code (NULL maps to empty string)',
 
@@ -379,7 +387,13 @@ CREATE TABLE maa_i18n_domain_language_summary (
     KEY idx_maa_i18n_domain_language_summary_language_code (language_code),
 
     CONSTRAINT chk_maa_i18n_domain_language_summary_language_code
-        CHECK (language_code IS NULL OR (CHAR_LENGTH(TRIM(language_code)) > 0 AND CHAR_LENGTH(language_code) <= 16))
+        CHECK (language_code IS NULL OR (
+            CHAR_LENGTH(language_code) BETWEEN 1 AND 16
+            AND language_code NOT REGEXP CONCAT(
+                '^[[:space:]', CONVERT(CHAR(11) USING utf8mb4), CONVERT(CHAR(12) USING utf8mb4),
+                CONVERT(0xC285 USING utf8mb4), CONVERT(CHAR(92) USING utf8mb4), 'p{Z}]*$'
+            )
+        ))
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
@@ -449,3 +463,9 @@ CREATE TABLE maa_i18n_key_stats (
  *
  * These derived tables MUST NOT be considered source of truth.
  * ========================================================== */
+
+CREATE TABLE maa_i18n_language_write_locks (
+    id TINYINT UNSIGNED NOT NULL PRIMARY KEY
+        COMMENT 'Stable language write lock slot from 0 to 255'
+) ENGINE=InnoDB
+    COMMENT='Internal transaction locks for translation writes and language re-keying (ADR-024)';

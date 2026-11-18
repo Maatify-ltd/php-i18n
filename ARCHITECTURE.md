@@ -43,7 +43,7 @@ exact, nullable, Host-owned `language_code` (see the [Package Reference](I18N_PA
 *   **Columns:** `id` (PK), `key_id` (unique FK -> maa_i18n_keys: exactly one stats row per key), `translated_count`, `updated_at`.
 
 ### Schema authority
-`schema/schema.i18n.sql` is the fresh-install schema authority for the seven core tables, an `id` primary key on each, meaningful column comments, and documented policies, including nullable translation `type` metadata. A Host deployment copy is a projection, never a second design source.
+`schema/schema.i18n.sql` is the fresh-install schema authority for the eight core tables, an `id` primary key on each, meaningful column comments, and documented policies, including nullable translation `type` metadata. A Host deployment copy is a projection, never a second design source.
 
 The optional [preview schema](schema/translation-key-preview.sql) adds `maa_i18n_translation_key_previews` on a fresh or existing installation. The table stores selectors and an expiry independently of the core translation tables.
 

@@ -18,7 +18,7 @@ namespace Maatify\I18n\Tests\Integration;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
 
 /**
- * GA-F05: the fresh install of schema/schema.i18n.sql is exactly the seven
+ * GA-F05: the fresh install of schema/schema.i18n.sql is exactly the eight
  * canonical `maa_i18n_*` tables with the current Package standard (PKs,
  * indexes, constraints, column comments, no Host coupling, ADR-019 shape).
  */
@@ -30,6 +30,7 @@ final class FreshSchemaTest extends MysqlIntegrationTestCase
         'maa_i18n_domains',
         'maa_i18n_key_stats',
         'maa_i18n_keys',
+        'maa_i18n_language_write_locks',
         'maa_i18n_scopes',
         'maa_i18n_translations',
     ];
@@ -53,7 +54,7 @@ final class FreshSchemaTest extends MysqlIntegrationTestCase
         return $rows;
     }
 
-    public function testExactlyTheSevenCanonicalTablesExist(): void
+    public function testExactlyTheEightCanonicalTablesExist(): void
     {
         $tables = array_map(
             static fn(array $r): string => is_string($r['TABLE_NAME']) ? $r['TABLE_NAME'] : '',
@@ -118,7 +119,7 @@ final class FreshSchemaTest extends MysqlIntegrationTestCase
                  WHERE TABLE_SCHEMA = :schema AND TABLE_NAME = '" . $table . "' AND COLUMN_NAME = 'language_code'",
             );
             self::assertSame('YES', $col[0]['IS_NULLABLE'], $table);
-            self::assertSame('utf8mb4_bin', $col[0]['COLLATION_NAME'], $table);
+            self::assertSame('utf8mb4_0900_bin', $col[0]['COLLATION_NAME'], $table);
             self::assertSame('16', self::text($col[0]['CHARACTER_MAXIMUM_LENGTH']), $table);
         }
 
