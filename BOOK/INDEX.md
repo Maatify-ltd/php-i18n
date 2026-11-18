@@ -74,7 +74,7 @@ Use this index to navigate non-linearly, or read the chapters in order.
 ## Reading Advice
 
 - Read once top to bottom, then use this index for lookups.
-- Governance rules apply to writes; runtime reads are fail-soft by design.
+- Key creation, renames and domain reads follow the configured governance policy. Single-key reads look up the exact stored translation.
 - For signatures, exact exception behavior and the API inventory, go to the [Package Reference](../I18N_PACKAGE_REFERENCE.md).
 
 ---

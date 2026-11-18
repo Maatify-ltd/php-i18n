@@ -4,7 +4,7 @@ This chapter documents the lifecycle of translation keys and values managed by `
 
 ## 1. Creating Keys
 
-The `createKey` method defines a new structured key, enforcing strict governance.
+`createKey` creates a structured key after validating its target against the configured governance policy.
 
 ```php
 // Define a new key for the 'auth' domain in 'client' scope
@@ -16,15 +16,9 @@ $keyId = $service->createKey(new CreateKeyCommand(
 ));
 ```
 
-**Mandatory Validations:**
-1.  **Scope** must exist and be active.
-2.  **Domain** must exist and be active.
-3.  **Mapping** must exist (`client` <-> `auth`).
-4.  **Uniqueness:** The combination `(client, auth, login.title)` must not already exist.
+Under `STRICT`, `client` and `auth` must exist and be active, and `auth` must be assigned to `client`. Under `PERMISSIVE`, either row may be missing. An existing inactive row still fails validation, and an assignment is required when both rows exist.
 
-**Exceptions:**
-*   `DomainScopeViolationException` (Governance failure)
-*   `TranslationKeyAlreadyExistsException` (Duplicate key)
+In either mode, the new identity `(client, auth, login.title)` must be unique. Policy violations raise `ScopeNotAllowedException`, `DomainNotAllowedException` or `DomainScopeViolationException`. A duplicate identity raises `TranslationKeyAlreadyExistsException`.
 
 ## 2. Renaming Keys
 

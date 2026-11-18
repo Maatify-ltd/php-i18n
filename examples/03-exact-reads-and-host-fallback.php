@@ -4,7 +4,8 @@
  * Example 03 - Exact reads and Host-owned fallback.
  *
  * Capability: runtime reads. I18n reads exactly one language scope and never
- * falls back. A Host that wants a fallback composes it itself, outside I18n.
+ * falls back. The Host owns fallback. Domain reads apply governance, while
+ * single-key reads return the stored exact translation.
  *
  *   Input -> Public Call -> Result -> Boundary
  *   (code|null, scope, domain, key) -> getValue / getDomainValues
@@ -28,7 +29,7 @@ echo 'Example 03 - Exact reads and Host-owned fallback', PHP_EOL;
 
 $core = ExampleCore::from(example_pdo());
 $core->scopes->create(new CreateScopeCommand('web', 'Website'));
-$core->domains->create(new CreateDomainCommand('home', 'Home page'));
+$homeId = $core->domains->create(new CreateDomainCommand('home', 'Home page'));
 $core->assignments->assign('web', 'home');
 
 $title = $core->writer->createKey(new CreateKeyCommand('web', 'home', 'title'));
@@ -136,4 +137,21 @@ example_expect(
     'Host chain: nothing matched, the Host default applies',
     '?',
     host_translate($core->reader, ['de'], 'web', 'home', 'title', '?'),
+);
+
+$core->domains->setActive($homeId, false);
+example_expect(
+    'a single-key read still returns the stored translation after deactivation',
+    'Welcome',
+    $core->reader->getValue('en', 'web', 'home', 'title'),
+);
+example_expect(
+    'a domain value read is empty after deactivation',
+    [],
+    $core->domainReader->getDomainValues('en', 'web', 'home')->all(),
+);
+example_expect(
+    'a domain read with types is empty after deactivation',
+    [],
+    $core->domainReader->getDomainTranslations('en', 'web', 'home')->all(),
 );

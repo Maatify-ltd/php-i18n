@@ -54,8 +54,9 @@ The optional [preview schema](schema/translation-key-preview.sql) adds `maa_i18n
 ## 2. Service Layer
 
 ### `I18nGovernancePolicyService`
-*   **Role:** The Gatekeeper.
-*   **Responsibility:** Enforces that Scopes and Domains exist and are mapped before keys can be created. A mutation that creates usage takes the governance rows' SHARE locks first (`assertScopeAndDomainAllowedForUsage`).
+The policy governs key creation, key renames and domain reads. In `STRICT`, both rows must exist and be active, and the pair must have an assignment. In `PERMISSIVE`, either row may be missing. Any existing inactive row is rejected, and an assignment is required when both exist. See the [governance contract](I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services).
+
+`assertScopeAndDomainAllowedForUsage` performs the key creation and rename checks using SHARE locking reads inside the write transaction.
 
 ### Management services (`Management/Service`)
 *   `I18nScopeManagementService`, `I18nDomainManagementService`: create (appended to the display order), metadata, active state, **code change**, ordering. A code change locks the governance row `FOR UPDATE`, checks usage with locking reads, then changes the code in one transaction; every usage-creating mutation takes the compatible SHARE locks (scope -> domain -> mapping), so "unused -> usage created -> code changed" can never orphan a reference. Ordering is `maatify/php-persistence` `ScopedOrderingManager`.
@@ -87,12 +88,12 @@ The optional [preview schema](schema/translation-key-preview.sql) adds `maa_i18n
 ### `TranslationReadService`
 *   **Role:** The Reader (Single Value).
 *   **Responsibility:** Fetches one key for an exact language scope through value-only (`getValue`) and rich (`getTranslation`) reads. **No fallback**: `null` code reads the unlocalized scope only, a code reads that code only.
-*   **Behavior:** Fail-Soft (Returns null).
+*   **Behavior:** Returns `null` on an exact miss or invalid language code. The single-key lookup uses the stored key and translation independently of governance.
 
 ### `TranslationDomainReadService`
 *   **Role:** The Reader (Bulk).
 *   **Responsibility:** Fetches entire domains through value-only (`getDomainValues`) and rich (`getDomainTranslations`) reads, exact scope only (no fallback).
-*   **Behavior:** Fail-Soft (Returns empty DTO).
+*   **Behavior:** Applies the configured governance policy and returns an empty DTO on a policy denial, invalid language code or a domain with no matching translations. See the [read contract](I18N_PACKAGE_REFERENCE.md#51-consumer-reads-consumer).
 
 ### `MissingCounterService`
 *   **Role:** The Aggregator.

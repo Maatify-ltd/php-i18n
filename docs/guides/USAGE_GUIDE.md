@@ -22,7 +22,7 @@ After the migration, run `I18nStatsRebuilder::fullRebuild()` with write traffic 
 
 ## 1. Fit, Requirements and Boundaries
 
-**Use I18n when** you want database-driven, governed translations: keys are structured as `scope.domain.key_part`, a key can only exist inside an assigned `(scope, domain)`, and values are stored per exact language code in MySQL.
+**Use I18n when** you want database-driven translations in MySQL with structured keys (`scope.domain.key_part`), a governance policy for key creation, renames and domain reads, and values stored per exact language code.
 
 **You need:**
 
@@ -116,14 +116,14 @@ $domainReader = new TranslationDomainReadService($keyRepository, $translationRep
 ```php
 $scopes->create(new CreateScopeCommand('web', 'Website'));
 $domains->create(new CreateDomainCommand('home', 'Home page'));
-$assignments->assign('web', 'home');          // a key may now exist in (web, home)
+$assignments->assign('web', 'home');          // STRICT allows key creation in (web, home)
 ```
 
-Also available: `updateMetadata`, `setActive`, `moveToPosition` (display order is appended on create and only changed through this call) and `changeCode`, which succeeds only while the code is unused (`ScopeInUseException` / `DomainInUseException` otherwise). An inactive scope or domain refuses new keys.
+Also available: `updateMetadata`, `setActive`, `moveToPosition` (display order is appended on create and only changed through this call) and `changeCode`, which succeeds only while the code is unused (`ScopeInUseException` / `DomainInUseException` otherwise). An inactive scope or domain prevents key creation and renames targeting that pair. See [governance modes](../../I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services) for the rules.
 
 ## 5. Create Keys and Write Translations
 
-**Input:** `CreateKeyCommand`, `UpsertTranslationCommand`. **Public call:** `TranslationWriteService`. **Result:** key id, translation id. **Boundary:** governance is enforced first; the derived summary is updated in the same transaction.
+**Input:** `CreateKeyCommand`, `UpsertTranslationCommand`. **Public call:** `TranslationWriteService`. **Result:** key id, translation id. **Boundary:** key creation and renames validate the target against the policy. Changes to derived summaries occur in the same transaction as the corresponding write.
 
 ```php
 $keyId = $writer->createKey(new CreateKeyCommand('web', 'home', 'title', 'Home page title'));
@@ -164,7 +164,9 @@ $domainReader->getDomainTranslations('en', 'web', 'home')->get('rich-copy'); // 
 
 The value-only methods keep their existing result shapes. Rich reads distinguish a missing row (`null` from the single read or an absent domain key) from an existing row whose type is `null`. An empty value remains present. Every non-null token is opaque and consumer-defined; I18n gives it no special meaning. Escaping and sanitization for the output context remain consumer responsibilities.
 
-Rules to remember: codes are case-sensitive (`'ar'` is not `'AR'`); `'ar-EG'` does not fall back to `'ar'`; a bulk read of a domain that is not readable under the policy is empty.
+Language codes are case-sensitive. A request for `'ar-EG'` reads that code exactly.
+
+Deactivating a scope or domain keeps its existing keys and values. A domain read returns an empty result once it sees the inactive scope or domain. A single-key read can still return the stored value for the requested language. [Example 03](../../examples/03-exact-reads-and-host-fallback.php) runs both reads after deactivating the domain.
 
 **Fallback is yours.** If your product wants `ar-EG` then `ar` then `en`, write that chain around `getValue` (see [example 03](../../examples/03-exact-reads-and-host-fallback.php)). An empty string is an existing translation.
 
@@ -231,8 +233,9 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 
 | Symptom | Check |
 |---|---|
-| a read returns `null` | the exact code the rows were stored with (`'ar'` is not `'AR'`, `null` is not any code); the key exists in exactly that `scope`, `domain`, `key_part`; the `(scope, domain)` is active and assigned (only matters for bulk reads); nothing falls back, so apply your own chain |
-| a key cannot be created | the scope and the domain exist and are active, and the domain is assigned to the scope |
+| a single-key read returns `null` | check the structured key and exact stored language code, including `null` for the unlocalized scope |
+| a domain read is empty | check for stored values in the exact language scope and verify the pair against the [configured governance mode](../../I18N_PACKAGE_REFERENCE.md#56-governance-policy-and-derived-state-services) |
+| a key cannot be created | check the typed error. Under `STRICT`, verify the scope and domain both exist, are active and have an assignment |
 | a code change is refused | the scope or domain code is still used by an assignment or a key |
 | a changed value does not show | I18n does not cache; invalidate your own cache after writes |
 | counts look wrong after a manual database edit | run `I18nStatsRebuilder::fullRebuild()` |

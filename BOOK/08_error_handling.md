@@ -4,7 +4,7 @@ This chapter catalogs the main exceptions and error scenarios enforced by the li
 
 ## 1. Fail-Hard Writes (Exceptions)
 
-All write operations (Admin APIs, Setup Scripts) **must** enforce strict rules and data integrity. They throw explicitly typed exceptions that **must** be handled.
+Writes surface failures to the caller. Key creation and renames also report violations of the configured governance policy as typed exceptions.
 
 | Exception Class                        | Description                            | Typically Thrown By           |
 |:---------------------------------------|:---------------------------------------|:------------------------------|
@@ -13,9 +13,9 @@ All write operations (Admin APIs, Setup Scripts) **must** enforce strict rules a
 | `TranslationKeyNotFoundException`      | Key ID does not exist.                 | `TranslationWriteService`     |
 | `TranslationKeyAlreadyExistsException` | Key `scope.domain.key` already exists. | `TranslationWriteService`     |
 | `TranslationKeyCreateFailedException`  | The repository returned no valid key ID.            | `TranslationWriteService`     |
-| `ScopeNotAllowedException`             | Scope is invalid or inactive.          | `I18nGovernancePolicyService` |
-| `DomainNotAllowedException`            | Domain is invalid or inactive.         | `I18nGovernancePolicyService` |
-| `DomainScopeViolationException`        | Domain is not mapped to Scope.         | `I18nGovernancePolicyService` |
+| `ScopeNotAllowedException`             | Scope is inactive, or missing under `STRICT`.          | `I18nGovernancePolicyService` |
+| `DomainNotAllowedException`            | Domain is inactive, or missing under `STRICT`.         | `I18nGovernancePolicyService` |
+| `DomainScopeViolationException`        | Both records are active and the domain lacks its assignment to the scope.         | `I18nGovernancePolicyService` |
 | `TranslationUpsertFailedException`     | The repository returned no valid translation ID.     | `TranslationWriteService`     |
 
 ### Handling Example
@@ -40,7 +40,7 @@ Runtime reads return `null` or an empty DTO for expected missing data. Storage f
 
 *   **Missing Key:** Returns `null`.
 *   **Missing Translation:** Returns `null` (exact scope only, no fallback).
-*   **Invalid Domain/Scope:** Returns empty `TranslationDomainValuesDTO` (`[]`).
+*   **Domain read denied by governance:** Returns an empty DTO. A single-key read can still return an exact stored translation.
 
 **Handling Nulls:**
 Application code **must** be robust to `null` returns.
