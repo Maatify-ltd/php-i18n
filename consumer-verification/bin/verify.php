@@ -39,6 +39,7 @@ use Maatify\I18n\Management\Service\I18nScopeDomainManagementService;
 use Maatify\I18n\Management\Service\I18nScopeManagementService;
 use Maatify\I18n\Management\Service\I18nStatsRebuilder;
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 use Maatify\I18n\Management\Service\TranslationWriteService;
 use Maatify\I18n\Repository\Mysql\MysqlDomainLanguageSummaryRepository;
 use Maatify\I18n\Repository\Mysql\MysqlDomainRepository;
@@ -514,7 +515,7 @@ try {
     };
     $previewClock->instant = new DateTimeImmutable('2030-01-01T12:00:00.000000+00:00');
     $expiry = $previewClock->now()->modify('+10 minutes');
-    $previews = new TranslationKeyPreviewService($pdo, $previewClock);
+    $previews = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($pdo), $previewClock);
     $created = $previews->activate([
         new PreviewTarget('web', 'home'),
         new PreviewTarget('web', 'account', 'save'),

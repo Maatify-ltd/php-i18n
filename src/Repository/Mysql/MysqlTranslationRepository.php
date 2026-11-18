@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Maatify\I18n\Repository\Mysql;
 
+use Maatify\I18n\Consumer\DTO\TranslationDomainTranslationsDTO;
+use Maatify\I18n\Consumer\DTO\TranslationValueDTO;
 use Maatify\I18n\DTO\TranslationCollectionDTO;
 use Maatify\I18n\DTO\TranslationDTO;
 use Maatify\I18n\DTO\TranslationUpsertResultDTO;
 use Maatify\I18n\Exception\LanguageCodeAlreadyInUseException;
+use Maatify\I18n\Repository\ExactTranslationReadRepositoryInterface;
 use Maatify\I18n\Repository\GuardedLanguageRekeyRepositoryInterface;
+use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\ValueObject\LanguageCode;
 use Maatify\PhpPersistence\Transaction\Repository\PdoTransactionRunner;
 use Maatify\SharedCommon\Contracts\ClockInterface;
@@ -17,7 +21,7 @@ use PDO;
 /**
  * Persists and reads translation records through the package-owned MySQL schema.
  */
-final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyRepositoryInterface
+final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyRepositoryInterface, ExactTranslationReadRepositoryInterface
 {
     private const COLUMNS = 'id, key_id, language_code, value, type, created_at, updated_at';
 
@@ -118,6 +122,83 @@ final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyR
         );
 
         return $row === null ? null : $this->map($row);
+    }
+
+    /** Join only the built-in key repository on the same PDO connection. */
+    public function canReadKeysFrom(TranslationKeyRepositoryInterface $keyRepository): bool
+    {
+        return $keyRepository instanceof MysqlTranslationKeyRepository
+            && $keyRepository->usesConnection($this->gateway->pdo());
+    }
+
+    /** Read the structured key and its exact-language value in a single statement. */
+    public function readStructuredTranslation(
+        ?string $languageCode,
+        string $scope,
+        string $domain,
+        string $key,
+    ): ?TranslationValueDTO {
+        $row = $this->gateway->fetchOne(
+            'SELECT k.id, t.id AS translation_id, t.value, t.type
+             FROM maa_i18n_keys k
+             LEFT JOIN maa_i18n_translations t ON t.key_id = k.id AND t.language_code_identity = :identity
+             WHERE k.scope = :scope AND k.domain = :domain AND k.key_part = :key
+             LIMIT 1',
+            ([
+                'identity' => LanguageCode::fromNullable($languageCode)->identity(),
+                'scope' => $scope,
+                'domain' => $domain,
+                'key' => $key,
+            ]),
+            'translation.readStructured',
+        );
+
+        return $row === null ? null : $this->valueForKeyRow($row);
+    }
+
+    /** Read the domain's key identities and exact-language values in a single statement. */
+    public function readDomainTranslations(
+        ?string $languageCode,
+        string $scope,
+        string $domain,
+    ): TranslationDomainTranslationsDTO {
+        $rows = $this->gateway->fetchAll(
+            'SELECT k.id, k.key_part, t.id AS translation_id, t.value, t.type
+             FROM maa_i18n_keys k
+             LEFT JOIN maa_i18n_translations t ON t.key_id = k.id AND t.language_code_identity = :identity
+             WHERE k.scope = :scope AND k.domain = :domain
+             ORDER BY k.key_part ASC',
+            ([
+                'identity' => LanguageCode::fromNullable($languageCode)->identity(),
+                'scope' => $scope,
+                'domain' => $domain,
+            ]),
+            'translation.readDomain',
+        );
+
+        $translations = [];
+        foreach ($rows as $row) {
+            $value = $this->valueForKeyRow($row);
+            if ($value !== null) {
+                $translations[Row::string($row, 'key_part')] = $value;
+            }
+        }
+
+        return new TranslationDomainTranslationsDTO($translations);
+    }
+
+    /**
+     * Preserve the stored identifier validation of the key and translation reads.
+     *
+     * @param array<string, mixed> $row
+     */
+    private function valueForKeyRow(array $row): ?TranslationValueDTO
+    {
+        Row::int($row, 'id');
+
+        return Row::nullableInt($row, 'translation_id') === null
+            ? null
+            : new TranslationValueDTO(Row::string($row, 'value'), Row::nullableString($row, 'type'));
     }
 
     /** Return every translation of the key in language-identity order; no rows yields an empty collection. */
@@ -226,12 +307,12 @@ final readonly class MysqlTranslationRepository implements GuardedLanguageRekeyR
     }
 
     /**
-     * Acquire language slots 1–255 in order. Slot 0 coordinates summary writes.
+     * Acquire language slots 3–255 in order. Slots 0–2 coordinate summaries and ordering.
      * A duplicate no-op still takes the existing row's write lock until the active transaction ends.
      */
     private function lockLanguageWrites(LanguageCode ...$languages): void
     {
-        $slots = array_map(static fn(LanguageCode $code): int => 1 + ord(hash('sha256', $code->identity(), true)[0]) % 255, $languages);
+        $slots = array_map(static fn(LanguageCode $code): int => 3 + ord(hash('sha256', $code->identity(), true)[0]) % 253, $languages);
         sort($slots, SORT_NUMERIC);
 
         foreach (array_unique($slots) as $slot) {

@@ -311,6 +311,24 @@ final class TranslationWriteIntegrityTest extends MysqlIntegrationTestCase
         self::assertSame($oldRename, $this->keys->getByStructuredKey('ct', 'home', 'moved-rename')?->id);
     }
 
+    public function testFullRebuildRestoresCoverageAfterMaintenanceDeletesAKey(): void
+    {
+        $removed = $this->createKey('ct', 'home', 'removed');
+        $retained = $this->createKey('ct', 'home', 'retained');
+        $this->upsert('ar', $removed, 'one', null);
+        $this->upsert('ar', $retained, 'two', null);
+
+        $this->pdo()->exec('DELETE FROM maa_i18n_keys WHERE id = ' . $removed);
+        $this->rebuilder->fullRebuild();
+
+        self::assertSame(
+            ['total_keys' => 1, 'translated_count' => 1, 'missing_count' => 0],
+            $this->summary->getRow('ct', 'home', 'ar'),
+        );
+        self::assertSame(0, $this->scalarInt('SELECT COUNT(*) FROM maa_i18n_key_stats WHERE key_id = ' . $removed));
+        self::assertSame(1, $this->scalarInt('SELECT translated_count FROM maa_i18n_key_stats WHERE key_id = ' . $retained));
+    }
+
     private function writerOn(PDO $pdo): TranslationWriteService
     {
         $keys = new MysqlTranslationKeyRepository($pdo);

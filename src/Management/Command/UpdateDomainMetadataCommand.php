@@ -36,7 +36,7 @@ final readonly class UpdateDomainMetadataCommand
             throw I18nInvalidArgumentException::emptyField('name');
         }
 
-        if ($name !== null && mb_strlen($name) > 128) {
+        if ($name !== null && mb_strlen($name, 'UTF-8') > 128) {
             throw I18nInvalidArgumentException::tooLong('name', 128);
         }
     }

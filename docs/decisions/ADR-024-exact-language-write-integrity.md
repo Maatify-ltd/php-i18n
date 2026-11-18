@@ -16,7 +16,7 @@ The prior binary collation ignored trailing spaces. A plain destination read cou
 
 Use MySQL `utf8mb4_0900_bin` for persisted language-code columns and their generated identities. Preserve valid UTF-8 codes exactly and reject codes that consist only of Unicode whitespace in both validation and storage.
 
-Use an internal InnoDB table with at most 256 language write slots. Slot 0 coordinates key and translation service writes that maintain summaries, including a full rebuild. Native upserts, deletes, and re-keys acquire the relevant language locks in slots 1 through 255 in slot order. The re-key checks the destination with a current locking read after acquiring both locks. Locks last for the owning transaction, including a Host-owned transaction. The native upsert distinguishes an insert from an update by the existing exact row under the write lock.
+Use an internal InnoDB table with at most 256 language write slots. Slot 0 coordinates key and translation service writes that maintain summaries, including a full rebuild. Slots 1 and 2 protect scope and domain ordering, including first allocation into empty tables. Native upserts, deletes, and re-keys acquire the relevant language locks in slots 3 through 255 in slot order. The re-key checks the destination with a current locking read after acquiring both locks. Locks last for the owning transaction, including a Host-owned transaction. The native upsert distinguishes an insert from an update by the existing exact row under the write lock.
 
 ## Rationale and consequences
 

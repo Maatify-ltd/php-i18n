@@ -30,7 +30,7 @@ final readonly class TranslationType
             throw I18nInvalidArgumentException::emptyField('type');
         }
 
-        if ($type !== null && mb_strlen($type) > self::MAX_LENGTH) {
+        if ($type !== null && mb_strlen($type, 'UTF-8') > self::MAX_LENGTH) {
             throw I18nInvalidArgumentException::tooLong('type', self::MAX_LENGTH);
         }
 

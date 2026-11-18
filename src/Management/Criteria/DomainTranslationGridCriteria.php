@@ -15,9 +15,15 @@ use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
  */
 final readonly class DomainTranslationGridCriteria
 {
+    /** @var list<string> */
+    public array $languageCodes;
+
+    /** @var list<string> */
+    public array $globalSearchLanguageCodes;
+
     /**
-     * @param list<string> $languageCodes
-     * @param list<string> $globalSearchLanguageCodes
+     * @param array<array-key, mixed> $languageCodes Validated as a list of exact codes.
+     * @param array<array-key, mixed> $globalSearchLanguageCodes Validated as a list of exact codes.
      * @throws I18nInvalidArgumentException when scope/domain is blank, keyId
      *     is not positive, or a supplied language code violates the technical
      *     contract
@@ -25,9 +31,9 @@ final readonly class DomainTranslationGridCriteria
     public function __construct(
         public string $scopeCode,
         public string $domainCode,
-        public array $languageCodes,
+        array $languageCodes,
         public ?string $globalSearch = null,
-        public array $globalSearchLanguageCodes = [],
+        array $globalSearchLanguageCodes = [],
         public ?int $keyId = null,
         public ?string $keyPartLike = null,
         public ?string $valueLike = null,
@@ -45,24 +51,9 @@ final readonly class DomainTranslationGridCriteria
             throw I18nInvalidArgumentException::notPositive('keyId');
         }
 
-        foreach ($languageCodes as $code) {
-            if (LanguageCode::tryFromNullable($code) === null) {
-                if (mb_strlen($code) > LanguageCode::MAX_LENGTH) {
-                    throw I18nInvalidArgumentException::tooLong('languageCodes', LanguageCode::MAX_LENGTH);
-                }
-
-                throw I18nInvalidArgumentException::emptyField('languageCodes');
-            }
-        }
-
-        foreach ($globalSearchLanguageCodes as $code) {
-            if (LanguageCode::tryFromNullable($code) === null) {
-                if (mb_strlen($code) > LanguageCode::MAX_LENGTH) {
-                    throw I18nInvalidArgumentException::tooLong('globalSearchLanguageCodes', LanguageCode::MAX_LENGTH);
-                }
-
-                throw I18nInvalidArgumentException::emptyField('globalSearchLanguageCodes');
-            }
-        }
+        LanguageCode::requireFilterList($languageCodes, 'languageCodes');
+        $this->languageCodes = $languageCodes;
+        LanguageCode::requireFilterList($globalSearchLanguageCodes, 'globalSearchLanguageCodes');
+        $this->globalSearchLanguageCodes = $globalSearchLanguageCodes;
     }
 }

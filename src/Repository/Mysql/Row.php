@@ -79,7 +79,12 @@ final class Row
      */
     public static function bool(array $row, string $column): bool
     {
-        return self::int($row, $column) === 1;
+        $value = $row[$column] ?? null;
+        if (!in_array($value, [0, 1, '0', '1'], true)) {
+            throw new I18nStorageException('hydrate:' . $column);
+        }
+
+        return $value === 1 || $value === '1';
     }
 
     /**

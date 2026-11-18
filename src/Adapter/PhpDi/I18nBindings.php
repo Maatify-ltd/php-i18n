@@ -6,6 +6,7 @@ namespace Maatify\I18n\Adapter\PhpDi;
 
 use DI\Container;
 use DI\ContainerBuilder;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Repository\DomainLanguageSummaryRepositoryInterface;
 use Maatify\I18n\Repository\DomainRepositoryInterface;
 use Maatify\I18n\Repository\DomainScopeRepositoryInterface;
@@ -17,10 +18,12 @@ use Maatify\I18n\Repository\Mysql\MysqlDomainScopeRepository;
 use Maatify\I18n\Repository\Mysql\MysqlI18nOperationalStatsRepository;
 use Maatify\I18n\Repository\Mysql\MysqlKeyStatsRepository;
 use Maatify\I18n\Repository\Mysql\MysqlScopeRepository;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationQueryRepository;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationRepository;
 use Maatify\I18n\Repository\ScopeRepositoryInterface;
+use Maatify\I18n\Repository\TranslationKeyPreviewRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationQueryRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
@@ -85,6 +88,22 @@ final class I18nBindings
     public static function register(ContainerBuilder $builder): void
     {
         $builder->addDefinitions([
+
+            TranslationKeyPreviewRepositoryInterface::class => static function (ContainerInterface $c): TranslationKeyPreviewRepositoryInterface {
+                $pdo = $c->get(PDO::class);
+                assert($pdo instanceof PDO);
+
+                return new MysqlTranslationKeyPreviewRepository($pdo);
+            },
+
+            TranslationKeyPreviewService::class => static function (ContainerInterface $c): TranslationKeyPreviewService {
+                $repository = $c->get(TranslationKeyPreviewRepositoryInterface::class);
+                $clock = $c->get(ClockInterface::class);
+                assert($repository instanceof TranslationKeyPreviewRepositoryInterface);
+                assert($clock instanceof ClockInterface);
+
+                return new TranslationKeyPreviewService($repository, $clock);
+            },
 
             TransactionRunnerInterface::class => static function (ContainerInterface $c): TransactionRunnerInterface {
                 $pdo = $c->get(PDO::class);

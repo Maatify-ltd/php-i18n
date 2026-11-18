@@ -39,15 +39,15 @@ final readonly class RenameKeyCommand
             throw I18nInvalidArgumentException::emptyField('key');
         }
 
-        if (mb_strlen($scope) > 32) {
+        if (mb_strlen($scope, 'UTF-8') > 32) {
             throw I18nInvalidArgumentException::tooLong('scope', 32);
         }
 
-        if (mb_strlen($domain) > 64) {
+        if (mb_strlen($domain, 'UTF-8') > 64) {
             throw I18nInvalidArgumentException::tooLong('domain', 64);
         }
 
-        if (mb_strlen($key) > 128) {
+        if (mb_strlen($key, 'UTF-8') > 128) {
             throw I18nInvalidArgumentException::tooLong('key', 128);
         }
     }

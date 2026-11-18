@@ -148,7 +148,7 @@ final readonly class PdoGateway
     {
         $id = $this->pdo->lastInsertId();
 
-        if (!is_string($id) || !ctype_digit($id)) {
+        if (!is_string($id) || !ctype_digit($id) || ltrim($id, '0') === '') {
             throw new I18nStorageException($operation . ':lastInsertId');
         }
 

@@ -27,6 +27,20 @@ final class TranslationTypeTest extends TestCase
         TranslationType::fromNullable(str_repeat('界', TranslationType::MAX_LENGTH + 1));
     }
 
+    public function testUtf8LengthDoesNotDependOnHostEncoding(): void
+    {
+        $original = mb_internal_encoding();
+        mb_internal_encoding('ISO-8859-1');
+        try {
+            $type = str_repeat('é', TranslationType::MAX_LENGTH);
+            self::assertSame($type, TranslationType::fromNullable($type)->value());
+            $this->expectException(I18nInvalidArgumentException::class);
+            TranslationType::fromNullable($type . 'é');
+        } finally {
+            mb_internal_encoding($original);
+        }
+    }
+
     public function testEmptyAndWhitespaceOnlyTypesAreRejected(): void
     {
         $invalidTypes = ['', ' ', "\t\n\r\x0B\x0C\x85", "\u{00A0}", "\u{2028}"];

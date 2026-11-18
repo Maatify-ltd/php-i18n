@@ -29,6 +29,8 @@ use Maatify\PhpPersistence\Pagination\ValueObject\SortWhitelist;
  */
 final readonly class MysqlGovernanceTableSupport
 {
+    private const ORDERING_SLOTS = ['maa_i18n_scopes' => 1, 'maa_i18n_domains' => 2];
+
     private ScopedOrderingConfig $orderingConfig;
 
     /**
@@ -66,22 +68,19 @@ final readonly class MysqlGovernanceTableSupport
     }
 
     /**
-     * Caller-owned lock that serializes concurrent position allocation. It
-     * takes the same locks, in the same index order (display position, then id),
-     * as maatify/php-persistence takes for a move, so creates and moves contend on
-     * the first row instead of deadlocking each other. Requires an active
-     * transaction.
-     *
-     * An EMPTY ordering has no row to lock: concurrent first creates may make
-     * InnoDB choose a deadlock victim (SQLSTATE 40001, propagated unchanged).
+     * Lock the table's reserved slot before allocating or moving a position,
+     * including when the ordering table is empty. The caller retains the lock
+     * until its transaction ends.
      */
     public function lockOrderingScope(): void
     {
         $this->assertInTransaction();
 
-        $this->gateway->run(
-            'SELECT id FROM ' . $this->table . ' ORDER BY sort_order ASC, id ASC FOR UPDATE',
-            [],
+        $slot = self::ORDERING_SLOTS[$this->table] ?? throw new LogicException('Unknown governance ordering table.');
+        $this->gateway->write(
+            'INSERT INTO maa_i18n_language_write_locks (id) VALUES (:id)
+             ON DUPLICATE KEY UPDATE id = id',
+            ['id' => $slot],
             $this->table . '.lockOrdering',
         );
     }
@@ -97,6 +96,8 @@ final readonly class MysqlGovernanceTableSupport
         $pdo = $this->gateway->pdo();
 
         return (new PdoTransactionRunner($pdo))->run(function () use ($pdo, $id, $position): bool {
+            $this->lockOrderingScope();
+
             try {
                 $moved = $this->ordering->moveWithinScope($pdo, $this->orderingConfig, null, $id, $position);
             } catch (OrderingExecutionException $failure) {

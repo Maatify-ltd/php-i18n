@@ -16,15 +16,18 @@ use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
  */
 final readonly class DomainKeySummaryCriteria
 {
+    /** @var list<string> */
+    public array $languageCodes;
+
     /**
-     * @param list<string> $languageCodes
+     * @param array<array-key, mixed> $languageCodes Validated as a list of exact codes.
      * @throws I18nInvalidArgumentException when scope/domain is blank, keyId
      *     is not positive, or a language code violates the technical contract
      */
     public function __construct(
         public string $scopeCode,
         public string $domainCode,
-        public array $languageCodes,
+        array $languageCodes,
         public ?string $globalSearch = null,
         public ?int $keyId = null,
         public ?string $keyPart = null,
@@ -43,14 +46,7 @@ final readonly class DomainKeySummaryCriteria
             throw I18nInvalidArgumentException::notPositive('keyId');
         }
 
-        foreach ($languageCodes as $code) {
-            if (LanguageCode::tryFromNullable($code) === null) {
-                if (mb_strlen($code) > LanguageCode::MAX_LENGTH) {
-                    throw I18nInvalidArgumentException::tooLong('languageCodes', LanguageCode::MAX_LENGTH);
-                }
-
-                throw I18nInvalidArgumentException::emptyField('languageCodes');
-            }
-        }
+        LanguageCode::requireFilterList($languageCodes, 'languageCodes');
+        $this->languageCodes = $languageCodes;
     }
 }

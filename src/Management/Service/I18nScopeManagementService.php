@@ -45,6 +45,7 @@ final readonly class I18nScopeManagementService
      * @return int id of the new scope (appended to the display order)
      *
      * @throws ScopeAlreadyExistsException
+     * @throws \PDOException when the MySQL write or transaction fails
      */
     public function create(CreateScopeCommand $command): int
     {
@@ -120,7 +121,7 @@ final readonly class I18nScopeManagementService
             throw I18nInvalidArgumentException::emptyField('newCode');
         }
 
-        if (mb_strlen($newCode) > 32) {
+        if (mb_strlen($newCode, 'UTF-8') > 32) {
             throw I18nInvalidArgumentException::tooLong('newCode', 32);
         }
 

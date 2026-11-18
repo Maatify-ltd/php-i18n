@@ -21,8 +21,10 @@ use Maatify\I18n\Adapter\PhpDi\I18nBindings;
 use Maatify\I18n\Consumer\Service\TranslationReadService;
 use Maatify\I18n\Management\Command\CreateKeyCommand;
 use Maatify\I18n\Management\Command\UpsertTranslationCommand;
+use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
 use Maatify\I18n\Management\Service\TranslationWriteService;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
+use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use Maatify\SharedCommon\Infrastructure\SystemClock;
 use PDO;
@@ -59,5 +61,15 @@ final class PhpDiAdapterIntegrationTest extends MysqlIntegrationTestCase
         self::assertSame('عنوان', $reader->getValue('ar', 'ct', 'home', 'title'));
         self::assertNull($reader->getValue('en', 'ct', 'home', 'title'));
         self::assertSame(1, $this->scalarInt('SELECT COUNT(*) FROM maa_i18n_domain_language_summary'));
+
+        $previewSchema = file_get_contents(dirname(__DIR__, 2) . '/schema/translation-key-preview.sql');
+        self::assertIsString($previewSchema);
+        $this->pdo()->exec($previewSchema);
+        $previews = $container->get(TranslationKeyPreviewService::class);
+        self::assertInstanceOf(TranslationKeyPreviewService::class, $previews);
+        $clock = $container->get(ClockInterface::class);
+        self::assertInstanceOf(ClockInterface::class, $clock);
+        $activated = $previews->activate([new PreviewTarget('ct', 'home', 'title')], $clock->now()->modify('+5 minutes'));
+        self::assertSame('ct.home.title', $previews->getActive($activated->id)?->labelFor('ct', 'home', 'title'));
     }
 }

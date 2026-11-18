@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Maatify\I18n\Consumer\Service;
 
+use Maatify\I18n\Repository\ExactTranslationReadRepositoryInterface;
 use Maatify\I18n\Repository\TranslationKeyRepositoryInterface;
 use Maatify\I18n\Repository\TranslationRepositoryInterface;
 use Maatify\I18n\Consumer\DTO\TranslationDomainTranslationsDTO;
@@ -69,6 +70,12 @@ final readonly class TranslationDomainReadService
         // 1) Enforce governance
         if (!$this->policyService->isScopeAndDomainReadable($scope, $domain)) {
             return new TranslationDomainTranslationsDTO([]);
+        }
+
+        if ($this->translationRepository instanceof ExactTranslationReadRepositoryInterface
+            && $this->translationRepository->canReadKeysFrom($this->keyRepository)
+        ) {
+            return $this->translationRepository->readDomainTranslations($exactCode->value(), $scope, $domain);
         }
 
         // 2) Resolve keys for (scope + domain)

@@ -16,7 +16,7 @@ For the earlier releases, see the [`1.0.0-rc.2` guide](https://github.com/Maatif
 
 For an existing RC.1 or RC.2 database, back up the I18n tables and pause traffic from the previous version. Apply [the exact-language migration](../../schema/migrations/2026-11-18-exact-language-writes.sql) to the I18n database before enabling RC.3. Run the migration outside an open transaction with a MySQL client that stops on the first error.
 
-The migration checks both translation and summary rows for whitespace-only language codes before applying persistent DDL. If it stops there, review the affected codes and resolve them under Host policy before retrying. The migration preserves valid codes and values byte for byte, including trailing spaces. The two ALTER statements commit separately, so keep traffic paused until the whole migration succeeds. Re-running the migration after a partial DDL failure is safe.
+Before applying persistent DDL, the migration checks both translation and summary rows for whitespace-only language codes and both governance tables for active flags outside 0 or 1. If a preflight fails, resolve the affected values under Host policy before retrying. The migration preserves valid codes and translation values byte for byte, including trailing spaces. If an old ordering contains duplicate positions, the migration assigns distinct positions in its existing `sort_order, id` display order. The DDL statements commit separately, so keep traffic paused until the whole migration succeeds. Re-running the migration after a partial DDL failure is safe.
 
 After the migration, run `I18nStatsRebuilder::fullRebuild()` with write traffic still paused to rebuild summaries and counters from the stored translations. The rebuild uses existing authoritative rows and cannot restore values overwritten by the previous collation.
 
@@ -238,13 +238,14 @@ $writer = $container->get(Maatify\I18n\Management\Service\TranslationWriteServic
 
 ## 12. Translation Key Preview
 
-Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Wire `TranslationKeyPreviewService` with your I18n PDO and clock. The same PDO lets Host-owned transactions include preview writes.
+Install the optional [preview schema](../../schema/translation-key-preview.sql) once on a fresh or existing installation. It adds one table without changing translation data. Pass your I18n PDO to `MysqlTranslationKeyPreviewRepository` and inject it with your clock into `TranslationKeyPreviewService`. The same PDO lets Host-owned transactions include preview writes.
 
 ```php
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\I18n\Management\Service\TranslationKeyPreviewService;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
 
-$previews = new TranslationKeyPreviewService($pdo, $clock);
+$previews = new TranslationKeyPreviewService(new MysqlTranslationKeyPreviewRepository($pdo), $clock);
 
 // In the authorized management action:
 $created = $previews->activate([

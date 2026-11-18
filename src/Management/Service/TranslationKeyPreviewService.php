@@ -9,6 +9,7 @@ use DateTimeZone;
 use Maatify\I18n\DTO\TranslationKeyPreviewDTO;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\Repository\Mysql\MysqlTranslationKeyPreviewRepository;
+use Maatify\I18n\Repository\TranslationKeyPreviewRepositoryInterface;
 use Maatify\I18n\ValueObject\PreviewTarget;
 use Maatify\SharedCommon\Contracts\ClockInterface;
 use PDO;
@@ -16,12 +17,13 @@ use PDO;
 /** Manages optional MySQL preview storage without owning the Host transaction. */
 final readonly class TranslationKeyPreviewService
 {
-    private MysqlTranslationKeyPreviewRepository $repository;
+    private TranslationKeyPreviewRepositoryInterface $repository;
     private DateTimeZone $utc;
 
-    public function __construct(PDO $pdo, private ClockInterface $clock)
+    /** Inject preview storage. A PDO argument supports the published RC.2 constructor. */
+    public function __construct(TranslationKeyPreviewRepositoryInterface|PDO $pdo, private ClockInterface $clock)
     {
-        $this->repository = new MysqlTranslationKeyPreviewRepository($pdo);
+        $this->repository = $pdo instanceof PDO ? MysqlTranslationKeyPreviewRepository::fromLegacyConnection($pdo) : $pdo;
         $this->utc = new DateTimeZone('UTC');
     }
 

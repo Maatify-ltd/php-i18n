@@ -100,7 +100,8 @@ CREATE TABLE maa_i18n_scopes (
     UNIQUE KEY uq_maa_i18n_scopes_code (code),
 
     KEY idx_maa_i18n_scopes_is_active (is_active),
-    KEY idx_maa_i18n_scopes_sort_order (sort_order)
+    KEY idx_maa_i18n_scopes_sort_order (sort_order),
+    CONSTRAINT chk_maa_i18n_scopes_active CHECK (is_active IN (0, 1))
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
@@ -148,7 +149,8 @@ CREATE TABLE maa_i18n_domains (
     UNIQUE KEY uq_maa_i18n_domains_code (code),
 
     KEY idx_maa_i18n_domains_is_active (is_active),
-    KEY idx_maa_i18n_domains_sort_order (sort_order)
+    KEY idx_maa_i18n_domains_sort_order (sort_order),
+    CONSTRAINT chk_maa_i18n_domains_active CHECK (is_active IN (0, 1))
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
@@ -466,6 +468,6 @@ CREATE TABLE maa_i18n_key_stats (
 
 CREATE TABLE maa_i18n_language_write_locks (
     id TINYINT UNSIGNED NOT NULL PRIMARY KEY
-        COMMENT 'Slot 0 coordinates summaries; slots 1 to 255 coordinate language writes'
+        COMMENT 'Slot 0 coordinates summaries, 1 and 2 ordering, 3 to 255 language writes'
 ) ENGINE=InnoDB
-    COMMENT='Internal transaction locks for translation writes, re-keying and summaries (ADR-024)';
+    COMMENT='Internal transaction locks for translation writes, summaries and ordering';
