@@ -14,7 +14,7 @@ I18n RC.2 uses the first Persistence release candidate. Persistence RC.2 correct
 
 ## Decision
 
-Pin `maatify/php-persistence:1.0.0-rc.2` exactly for I18n `1.0.0-rc.3`. Use the [published Packagist artifact](https://packagist.org/packages/maatify/php-persistence#v1.0.0-rc.2) at `71dc61548e48fd053376db69149a00bc87069b70`. Keep Composer minimum stability at `stable` and allow the exact RC in the consumer root. Stable package qualification still requires an eligible Stable Persistence release.
+Pin `maatify/php-persistence:1.0.0-rc.2` exactly for I18n `1.0.0-rc.3`. The package declares `1.0.0-rc.2 <=1.0.0-rc.2` under the adopted Package Building Standard §11. The equality term limits the match to RC.2, and the compound form passes `composer validate --strict`. Use the [published Packagist artifact](https://packagist.org/packages/maatify/php-persistence#v1.0.0-rc.2) at `71dc61548e48fd053376db69149a00bc87069b70`. Keep Composer minimum stability at `stable` and allow the exact RC in the consumer root. Stable package qualification still requires an eligible Stable Persistence release.
 
 ## Consequences
 

@@ -5,7 +5,7 @@
 - **Overall Resolution Status:** `VALID`
 - **Adoption Model:** Selective pinned adoption
 - **Upstream Repository:** `https://github.com/Maatify-ltd/php-engineering-standards.git`
-- **Adoption Commit:** `7f73468922d4e58b5d86cd9511e1081c28acf420`
+- **Adoption Commit:** `1f560795397f24bddcc3d09b982ff93a77f7154e`
 - **Adoption Date:** `2026-11-18`
 - **Latest Applicability Re-evaluation:** `2026-11-18` against the exact Adoption Commit.
 - **Additional Standards:** None
@@ -51,7 +51,7 @@ These are the final Stage 2 applicable standards for the two activations at `/`,
 
 | Standard ID | Version | Local path | Resolution provenance |
 |---|---:|---|---|
-| `std-package-building` | `4.0.0` | [PACKAGE_BUILDING_STANDARD.md](standards/packages/PACKAGE_BUILDING_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone Composer package |
+| `std-package-building` | `5.0.0` | [PACKAGE_BUILDING_STANDARD.md](standards/packages/PACKAGE_BUILDING_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone Composer package |
 | `std-composer-package` | `7.0.0` | [COMPOSER_PACKAGE_STANDARD.md](standards/packages/COMPOSER_PACKAGE_STANDARD.md) | Direct requirement of `composer-package` at `/`; repository is the standalone package root |
 | `std-ci-workflow` | `7.0.0` | [CI_WORKFLOW_STANDARD.md](standards/packages/CI_WORKFLOW_STANDARD.md) | Direct requirement of `composer-package` at `/`; package CI scope |
 | `std-library-presentation` | `6.0.0` | [LIBRARY_PRESENTATION_STANDARD.md](standards/packages/LIBRARY_PRESENTATION_STANDARD.md) | Direct requirement of `composer-package` at `/`; standalone reusable package presentation scope |
@@ -67,4 +67,4 @@ These are the final Stage 2 applicable standards for the two activations at `/`,
 
 Both profiles apply at the standalone package root and neither extends another profile. The 12 unique candidates resolve to the 11 listed standards. External Provider Verification is excluded because the package owns no provider-specific contract. The package owns PDO/MySQL repositories, schema, manually maintained PHP, tests and governance documentation, so the applicable persistence and verification clauses apply.
 
-This upgrade replaces pin `d3dd98b8d82c8bcdd65614fe4ed80853bdcdcc73` with the exact approved upstream snapshot recorded above. No explicit additional standards or exceptions apply.
+This upgrade replaces pin `7f73468922d4e58b5d86cd9511e1081c28acf420` with the exact approved upstream snapshot recorded above. No explicit additional standards or exceptions apply.

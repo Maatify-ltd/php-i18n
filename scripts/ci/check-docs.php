@@ -358,6 +358,10 @@ $requiredComposerExclusions = [
     '/tests/Integration/ExactLanguageWritesMigrationTest.php',
 ];
 $composerData = json_decode((string) file_get_contents('composer.json'), true);
+$expectedPersistenceConstraint = $persistenceTarget . ' <=' . $persistenceTarget;
+if (($composerData['require']['maatify/php-persistence'] ?? null) !== $expectedPersistenceConstraint) {
+    $errors[] = 'composer.json must use the adopted exact Persistence RC constraint: ' . $expectedPersistenceConstraint;
+}
 $composerExclusions = $composerData['archive']['exclude'] ?? [];
 foreach ($requiredComposerExclusions as $exclusion) {
     if (!in_array($exclusion, $composerExclusions, true)) {
