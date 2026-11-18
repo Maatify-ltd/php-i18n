@@ -51,7 +51,8 @@ Release Candidate artifact `1.0.0-rc.3` was unpublished at preparation. At prepa
 
 | Requirement | Constraint |
 |---|---|
-| PHP | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` |
+| Composer PHP eligibility | `>=8.4.27 <8.5.0 \|\| >=8.5.12 <8.6.0` |
+| Verified PHP support | Stable PHP 8.4 and 8.5 within the Composer eligibility range |
 | Extensions | `ext-mbstring`, `ext-pdo`, `ext-pdo_mysql` |
 | `maatify/exceptions` | `^1.1` |
 | `maatify/php-persistence` | `1.0.0-rc.2` |
@@ -186,6 +187,7 @@ composer verify          # canonical Package gates on the currently resolved dep
 | Composer validation | `composer check:composer` | Quality |
 | Platform requirements | `composer check:platform` | Quality, Dependencies |
 | Strict production autoload | `composer check:autoload` | Quality |
+| PHP compatibility | `composer check:php-constraint` checks Composer eligibility, and `composer check:php-runtime` checks a Stable interpreter | Quality and PHP matrix jobs |
 | PHP syntax | `composer check:syntax` | Quality |
 | PHPStan max | `composer analyse` | Quality, Dependencies |
 | PHP-FIG PER Coding Style 3.1 | `composer check:style` | Quality, Dependencies |
