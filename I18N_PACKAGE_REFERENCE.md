@@ -194,6 +194,12 @@ Pagination normalization (page and page-size bounds, unknown sort key fallback) 
 
 Every language-facing criteria input is an **exact code supplied by the Host**. I18n never reads a Host language table: the Host decides which codes are measured and composes names, ordering and activity itself.
 
+#### Translation grid ordering
+
+The grid uses the sort key and primary direction resolved by `maatify/php-persistence`. With `key_part` as the primary sort key, including the default and unknown-key fallback, the grid breaks ties with `language_code ASC`. With `language_code` as the primary sort key, the grid breaks ties with `key_part ASC` for both primary directions. Key parts follow `utf8mb4_unicode_ci`, and exact language codes follow `utf8mb4_0900_bin`.
+
+Within a scope and domain, the two sort keys give each grid cell a distinct position, including cells with no translation. When switching from language-only ordering, page membership and order within a language can change. The order is stable across page requests over unchanged data and criteria. Concurrent changes can shift offset pages.
+
 ### 5.5 Operational reads (`Management\Service\I18nOperationalReadService`)
 
 Constructor: `(I18nOperationalStatsRepositoryInterface)`. Read-only; the Host composes these exact-code facts with its own language data and does not reconstruct them by SQL over Package tables.

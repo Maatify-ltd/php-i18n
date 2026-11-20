@@ -225,6 +225,8 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
             dataParams: $filterParams + $dataCodeParams,
         );
 
+        // Match the paginator's case-sensitive whitelist lookup after trimming the requested key.
+        $sortByLanguage = trim($criteria->page->sortBy ?? '') === 'language_code';
         $config = new PaginationConfig(
             sortWhitelist: new SortWhitelist([
                 'key_part' => 'k.key_part',
@@ -232,7 +234,7 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
             ]),
             defaultSortBy: 'key_part',
             defaultSortDirection: SortDirectionEnum::ASC,
-            tieBreakerSortBy: 'language_code',
+            tieBreakerSortBy: $sortByLanguage ? 'key_part' : 'language_code',
             tieBreakerDirection: SortDirectionEnum::ASC,
         );
 

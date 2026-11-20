@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 namespace Maatify\I18n\Tests\Integration;
 
+use Maatify\I18n\DTO\TranslationGridRowDTO;
 use Maatify\I18n\Exception\I18nExceptionInterface;
 use Maatify\I18n\Exception\I18nInvalidArgumentException;
 use Maatify\I18n\Exception\InvalidLanguageCodeException;
@@ -27,7 +28,12 @@ use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Criteria\KeyListCriteria;
 use Maatify\I18n\Management\Criteria\LanguageTranslationValuesCriteria;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
+use Maatify\I18n\Tests\Support\RecordingQueryStatement;
 use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
+use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
+use PDO;
+use PDOStatement;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
 {
@@ -242,6 +248,163 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
 
         $empty = $this->managementRead->pageDomainTranslationGrid($this->gridCriteria([]));
         self::assertSame([0, 0, []], [$empty->total, $empty->filtered, $empty->data]);
+    }
+
+    /** @return iterable<string, array{int, ?string, ?string, string, string, bool, ?string}> */
+    public static function gridPageOrders(): iterable
+    {
+        $orders = [
+            'default' => [null, null, 'key_part', 'ASC', false, null],
+            'explicit key ascending' => ['key_part', 'ASC', 'key_part', 'ASC', false, null],
+            'explicit key descending' => ['key_part', 'DESC', 'key_part', 'DESC', false, null],
+            'language ascending' => ['language_code', 'ASC', 'language_code', 'ASC', false, null],
+            'language descending' => ['language_code', 'DESC', 'language_code', 'DESC', false, null],
+            'padded language and direction' => [' language_code ', ' desc ', 'language_code', 'DESC', false, null],
+            'invalid direction with language' => ['language_code', 'sideways', 'language_code', 'ASC', false, null],
+            'unknown key keeps direction' => ['unknown_grid_sort', ' desc ', 'key_part', 'DESC', false, null],
+            'uppercase language falls back' => ['LANGUAGE_CODE', null, 'key_part', 'ASC', false, null],
+            'invalid key falls back' => ['language_code,key_part', null, 'key_part', 'ASC', false, null],
+            'single language ascending' => ['language_code', 'ASC', 'language_code', 'ASC', true, null],
+            'single language descending' => ['language_code', 'DESC', 'language_code', 'DESC', true, null],
+            'value filter with language' => ['language_code', 'DESC', 'language_code', 'DESC', false, 'keep'],
+        ];
+
+        foreach ([1, 2] as $perPage) {
+            foreach ($orders as $name => $order) {
+                yield $name . ' / ' . $perPage => [$perPage, ...$order];
+            }
+        }
+    }
+
+    /** @param 1|2 $perPage */
+    #[DataProvider('gridPageOrders')]
+    public function testGridPageOrderReturnsEachExpectedCellExactlyOnce(
+        int $perPage,
+        ?string $sortBy,
+        ?string $sortDirection,
+        string $expectedSortBy,
+        string $expectedDirection,
+        bool $singleLanguage,
+        ?string $valueLike,
+    ): void {
+        $keyIds = [];
+        foreach (['delta', 'alpha', 'charlie', 'bravo', 'echo'] as $keyPart) {
+            $keyIds[$keyPart] = $this->createKey('ct', 'home', $keyPart);
+        }
+
+        $translations = [
+            'delta' => ['ar' => [$this->upsert('ar', $keyIds['delta'], 'keep delta', 'fixture'), 'keep delta', 'fixture']],
+            'alpha' => ['AR' => [$this->upsert('AR', $keyIds['alpha'], 'keep alpha', null), 'keep alpha', null]],
+            'charlie' => [
+                'ar' => [$this->upsert('ar', $keyIds['charlie'], 'other charlie', null), 'other charlie', null],
+                'AR' => [$this->upsert('AR', $keyIds['charlie'], '', null), '', null],
+            ],
+            'echo' => ['ar' => [$this->upsert('ar', $keyIds['echo'], 'keep echo', null), 'keep echo', null]],
+        ];
+        $this->upsert(null, $keyIds['bravo'], 'unlocalized', null);
+
+        // The reference order comes from the fixture and the documented direction of each sort key.
+        $keyParts = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
+        $codes = $singleLanguage ? ['ar'] : ['AR', 'ar'];
+        $sortByLanguage = $expectedSortBy === 'language_code';
+        if ($expectedDirection === 'DESC') {
+            if ($sortByLanguage) {
+                $codes = array_reverse($codes);
+            } else {
+                $keyParts = array_reverse($keyParts);
+            }
+        }
+
+        $expectedByPrimary = array_fill_keys($sortByLanguage ? $codes : $keyParts, []);
+        foreach ($keyParts as $keyPart) {
+            foreach ($codes as $code) {
+                [$translationId, $value, $type] = $translations[$keyPart][$code] ?? [null, null, null];
+                if ($valueLike !== null && ($value === null || ! str_contains($value, $valueLike))) {
+                    continue;
+                }
+
+                $expectedByPrimary[$sortByLanguage ? $code : $keyPart][] = [
+                    'translation_id' => $translationId,
+                    'key_id' => $keyIds[$keyPart],
+                    'key_part' => $keyPart,
+                    'description' => null,
+                    'language_code' => $code,
+                    'value' => $value,
+                    'type' => $type,
+                ];
+            }
+        }
+
+        $expectedRows = array_merge(...array_values($expectedByPrimary));
+        $expectedPages = array_chunk($expectedRows, $perPage);
+        $orders = [];
+        $results = [];
+        $actualCells = [];
+        $pdo = $this->pdo();
+        $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [
+            RecordingQueryStatement::class,
+            [static function (string $sql) use (&$orders): void {
+                $orderStart = strpos($sql, "\nORDER BY ");
+                if ($orderStart !== false) {
+                    $orders[] = substr($sql, $orderStart + 1);
+                }
+            }],
+        ]);
+
+        try {
+            foreach (array_keys($expectedPages) as $offset) {
+                $page = $this->managementRead->pageDomainTranslationGrid(new DomainTranslationGridCriteria(
+                    'ct',
+                    'home',
+                    $singleLanguage ? ['ar'] : ['ar', 'AR', 'ar'],
+                    valueLike: $valueLike,
+                    page: new PageRequest($offset + 1, $perPage, $sortBy, $sortDirection),
+                ));
+                self::assertInstanceOf(PageResultDTO::class, $page);
+                foreach ($page->data as $row) {
+                    self::assertInstanceOf(TranslationGridRowDTO::class, $row);
+                    $actualCells[] = [$row->keyId, $row->languageCode, $row->translationId];
+                }
+                $results[] = $page;
+            }
+        } finally {
+            $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [PDOStatement::class]);
+        }
+
+        // Check cell coverage before order so a duplicate or missing cell yields its own failure.
+        $expectedCells = array_map(
+            static fn(array $row): array => [$row['key_id'], $row['language_code'], $row['translation_id']],
+            $expectedRows,
+        );
+        sort($expectedCells);
+        sort($actualCells);
+        self::assertSame($expectedCells, $actualCells, 'The pages must contain every grid cell exactly once.');
+
+        $order = $sortByLanguage
+            ? "ORDER BY `lc`.`language_code` $expectedDirection, `k`.`key_part` ASC"
+            : "ORDER BY `k`.`key_part` $expectedDirection, `lc`.`language_code` ASC";
+        $order .= "\nLIMIT :__pagination_limit\nOFFSET :__pagination_offset";
+        self::assertSame(array_fill(0, count($expectedPages), $order), $orders);
+
+        foreach ($expectedPages as $offset => $expectedPage) {
+            $expectedPagination = [
+                'page' => $offset + 1,
+                'per_page' => $perPage,
+                'total' => count($keyParts) * count($codes),
+                'filtered' => count($expectedRows),
+                'total_pages' => count($expectedPages),
+                'has_next' => $offset + 1 < count($expectedPages),
+                'has_previous' => $offset > 0,
+                'sort_by' => $expectedSortBy,
+                'sort_direction' => $expectedDirection,
+            ];
+            $result = $results[$offset];
+            self::assertSame($expectedPagination, $result->toArray()['pagination']);
+            self::assertSame(
+                ['data' => $expectedPage, 'pagination' => $expectedPagination],
+                json_decode(json_encode($result, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR),
+            );
+        }
     }
 
     public function testLanguageTranslationValuesListEveryKeyForOneExactCode(): void
