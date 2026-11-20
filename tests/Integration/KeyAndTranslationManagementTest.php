@@ -270,8 +270,16 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
         ];
 
         foreach ([1, 2] as $perPage) {
-            foreach ($orders as $name => $order) {
-                yield $name . ' / ' . $perPage => [$perPage, ...$order];
+            foreach ($orders as $name => [$sortBy, $sortDirection, $expectedSortBy, $expectedDirection, $singleLanguage, $valueLike]) {
+                yield $name . ' / ' . $perPage => [
+                    $perPage,
+                    $sortBy,
+                    $sortDirection,
+                    $expectedSortBy,
+                    $expectedDirection,
+                    $singleLanguage,
+                    $valueLike,
+                ];
             }
         }
     }
