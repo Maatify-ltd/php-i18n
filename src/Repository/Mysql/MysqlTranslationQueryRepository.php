@@ -220,7 +220,7 @@ final readonly class MysqlTranslationQueryRepository implements TranslationQuery
             totalParams: ['scope' => $criteria->scopeCode, 'domain' => $criteria->domainCode] + $totalCodeParams,
             filteredCountSql: 'SELECT COUNT(*) ' . $from($filteredCodeSql) . $whereSql,
             filteredCountParams: $filterParams + $filteredCodeParams,
-            dataSql: 'SELECT t.id AS translation_id, k.id AS key_id, k.key_part, k.description,
+            dataSql: 'SELECT /*+ SET_VAR(max_sort_length=2048) */ t.id AS translation_id, k.id AS key_id, k.key_part, k.description,
                              lc.language_code, t.value, t.type ' . $from($dataCodeSql) . $whereSql,
             dataParams: $filterParams + $dataCodeParams,
         );

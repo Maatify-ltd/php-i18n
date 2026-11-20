@@ -27,16 +27,23 @@ use Maatify\I18n\Management\Criteria\DomainKeySummaryCriteria;
 use Maatify\I18n\Management\Criteria\DomainTranslationGridCriteria;
 use Maatify\I18n\Management\Criteria\KeyListCriteria;
 use Maatify\I18n\Management\Criteria\LanguageTranslationValuesCriteria;
+use Maatify\I18n\Repository\Mysql\MysqlTranslationQueryRepository;
+use Maatify\I18n\Tests\Support\GridHintProbePdo;
 use Maatify\I18n\Tests\Support\MysqlIntegrationTestCase;
+use Maatify\I18n\Tests\Support\MysqlTestEnvironment;
 use Maatify\I18n\Tests\Support\RecordingQueryStatement;
 use Maatify\PhpPersistence\Pagination\Criteria\PageRequest;
 use Maatify\PhpPersistence\Pagination\DTO\PageResultDTO;
 use PDO;
+use PDOException;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
 {
+    /** @var list<string> */
+    private array $recordedGridStatements = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -250,7 +257,7 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
         self::assertSame([0, 0, []], [$empty->total, $empty->filtered, $empty->data]);
     }
 
-    /** @return iterable<string, array{int, ?string, ?string, string, string, bool, ?string}> */
+    /** @return iterable<string, array{int, ?string, ?string, string, string, bool, ?string, bool}> */
     public static function gridPageOrders(): iterable
     {
         $orders = [
@@ -271,15 +278,19 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
 
         foreach ([1, 2] as $perPage) {
             foreach ($orders as $name => [$sortBy, $sortDirection, $expectedSortBy, $expectedDirection, $singleLanguage, $valueLike]) {
-                yield $name . ' / ' . $perPage => [
-                    $perPage,
-                    $sortBy,
-                    $sortDirection,
-                    $expectedSortBy,
-                    $expectedDirection,
-                    $singleLanguage,
-                    $valueLike,
-                ];
+                foreach ([false, true] as $longKeys) {
+                    $fixture = $longKeys ? 'Unicode ' : '';
+                    yield $fixture . $name . ' / ' . $perPage => [
+                        $perPage,
+                        $sortBy,
+                        $sortDirection,
+                        $expectedSortBy,
+                        $expectedDirection,
+                        $singleLanguage,
+                        $valueLike,
+                        $longKeys,
+                    ];
+                }
             }
         }
     }
@@ -294,10 +305,32 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
         string $expectedDirection,
         bool $singleLanguage,
         ?string $valueLike,
+        bool $longKeys,
     ): void {
+        $parts = ['delta' => 'delta', 'alpha' => 'alpha', 'charlie' => 'charlie', 'bravo' => 'bravo', 'echo' => 'echo'];
+        if ($longKeys) {
+            // The collation expands 128 occurrences of U+337F into 2048 weight bytes.
+            $prefix = str_repeat("\u{337F}", 127);
+            $parts = [
+                'delta' => $prefix . "\u{337F}",
+                'alpha' => $prefix . 'a',
+                'charlie' => $prefix . 'C',
+                'bravo' => $prefix . 'b',
+                'echo' => $prefix . "\u{FDFB}",
+            ];
+        }
         $keyIds = [];
-        foreach (['delta', 'alpha', 'charlie', 'bravo', 'echo'] as $keyPart) {
-            $keyIds[$keyPart] = $this->createKey('ct', 'home', $keyPart);
+        foreach ($parts as $label => $keyPart) {
+            $keyIds[$label] = $this->createKey('ct', 'home', $keyPart);
+        }
+
+        $pdo = $this->pdo();
+        self::assertFalse((bool) $pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
+        if ($longKeys) {
+            $weights = $pdo->prepare('SELECT CHAR_LENGTH(key_part), OCTET_LENGTH(WEIGHT_STRING(key_part)) FROM maa_i18n_keys WHERE id = :id');
+            self::assertNotFalse($weights);
+            $weights->execute(['id' => $keyIds['delta']]);
+            self::assertSame([128, 2048], $weights->fetch(PDO::FETCH_NUM));
         }
 
         $translations = [
@@ -312,8 +345,12 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
         $this->upsert(null, $keyIds['bravo'], 'unlocalized', null);
 
         // The reference order comes from the fixture and the documented direction of each sort key.
-        $keyParts = ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
-        $codes = $singleLanguage ? ['ar'] : ['AR', 'ar'];
+        $keyParts = $longKeys ? ['alpha', 'bravo', 'charlie', 'echo', 'delta'] : ['alpha', 'bravo', 'charlie', 'delta', 'echo'];
+        $requestedCodes = $longKeys ? ['ar ', 'ar', 'AR', 'ar '] : ['ar', 'AR', 'ar'];
+        $codes = $longKeys ? ['AR', 'ar', 'ar '] : ['AR', 'ar'];
+        if ($singleLanguage) {
+            $requestedCodes = $codes = ['ar'];
+        }
         $sortByLanguage = $expectedSortBy === 'language_code';
         if ($expectedDirection === 'DESC') {
             if ($sortByLanguage) {
@@ -334,7 +371,7 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
                 $expectedByPrimary[$sortByLanguage ? $code : $keyPart][] = [
                     'translation_id' => $translationId,
                     'key_id' => $keyIds[$keyPart],
-                    'key_part' => $keyPart,
+                    'key_part' => $parts[$keyPart],
                     'description' => null,
                     'language_code' => $code,
                     'value' => $value,
@@ -345,17 +382,13 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
 
         $expectedRows = array_merge(...array_values($expectedByPrimary));
         $expectedPages = array_chunk($expectedRows, $perPage);
-        $orders = [];
+        $statementsByPage = [];
         $results = [];
         $actualCells = [];
-        $pdo = $this->pdo();
         $pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [
             RecordingQueryStatement::class,
-            [static function (string $sql) use (&$orders): void {
-                $orderStart = strpos($sql, "\nORDER BY ");
-                if ($orderStart !== false) {
-                    $orders[] = substr($sql, $orderStart + 1);
-                }
+            [function (string $sql): void {
+                $this->recordedGridStatements[] = $sql;
             }],
         ]);
 
@@ -364,10 +397,13 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
                 $page = $this->managementRead->pageDomainTranslationGrid(new DomainTranslationGridCriteria(
                     'ct',
                     'home',
-                    $singleLanguage ? ['ar'] : ['ar', 'AR', 'ar'],
+                    $requestedCodes,
                     valueLike: $valueLike,
                     page: new PageRequest($offset + 1, $perPage, $sortBy, $sortDirection),
                 ));
+                $statementsByPage[] = $this->recordedGridStatements;
+                $this->recordedGridStatements = [];
+                self::assertNoGridWarnings($pdo);
                 self::assertInstanceOf(PageResultDTO::class, $page);
                 foreach ($page->data as $row) {
                     self::assertInstanceOf(TranslationGridRowDTO::class, $row);
@@ -392,7 +428,17 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
             ? "ORDER BY `lc`.`language_code` $expectedDirection, `k`.`key_part` ASC"
             : "ORDER BY `k`.`key_part` $expectedDirection, `lc`.`language_code` ASC";
         $order .= "\nLIMIT :__pagination_limit\nOFFSET :__pagination_offset";
-        self::assertSame(array_fill(0, count($expectedPages), $order), $orders);
+        foreach ($statementsByPage as $statements) {
+            self::assertCount(3, $statements);
+            [$totalSql, $filteredSql, $dataSql] = $statements;
+            foreach ([$totalSql, $filteredSql] as $countSql) {
+                self::assertStringStartsWith('SELECT COUNT(*) ', $countSql);
+                self::assertStringNotContainsString('SET_VAR', $countSql);
+            }
+            self::assertStringStartsWith('SELECT /*+ SET_VAR(max_sort_length=2048) */ t.id AS translation_id', $dataSql);
+            self::assertStringEndsWith($order, $dataSql);
+            self::assertSame(1, substr_count($dataSql, 'SET_VAR'));
+        }
 
         foreach ($expectedPages as $offset => $expectedPage) {
             $expectedPagination = [
@@ -412,6 +458,86 @@ final class KeyAndTranslationManagementTest extends MysqlIntegrationTestCase
                 ['data' => $expectedPage, 'pagination' => $expectedPagination],
                 json_decode(json_encode($result, JSON_THROW_ON_ERROR), true, flags: JSON_THROW_ON_ERROR),
             );
+        }
+    }
+
+    /** @return iterable<string, array{int, ?string, bool}> */
+    public static function gridHostSessions(): iterable
+    {
+        foreach ([64, 8192] as $sortLength) {
+            foreach ([null, 'READ WRITE', 'READ ONLY'] as $mode) {
+                foreach ([false, true] as $fail) {
+                    $name = ($mode ?? 'no transaction') . ' / ' . $sortLength . ' / ' . ($fail ? 'server error' : 'success');
+                    yield $name => [$sortLength, $mode, $fail];
+                }
+            }
+        }
+    }
+
+    #[DataProvider('gridHostSessions')]
+    public function testGridHintPreservesTheHostSession(int $sortLength, ?string $transactionMode, bool $fail): void
+    {
+        $keyId = $this->createKey('ct', 'home', 'hint-probe');
+        $translationId = $this->upsert('ar', $keyId, 'not JSON', null);
+        $credentials = MysqlTestEnvironment::credentials();
+        self::assertNotNull($credentials);
+        $pdo = new GridHintProbePdo($credentials, $fail);
+        $pdo->exec('USE `' . self::schemaName() . '`');
+        $pdo->exec('SET SESSION max_sort_length = ' . $sortLength);
+        $pdo->exec('SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED');
+        $pdo->exec('SET NAMES utf8mb4 COLLATE utf8mb4_bin');
+        self::assertFalse((bool) $pdo->getAttribute(PDO::ATTR_EMULATE_PREPARES));
+        if ($transactionMode !== null) {
+            $pdo->exec('SET TRANSACTION ' . $transactionMode);
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $queries = new MysqlTranslationQueryRepository($pdo);
+            $criteria = new DomainTranslationGridCriteria('ct', 'home', ['ar'], keyId: $keyId);
+            $sessionSql = 'SELECT @@SESSION.max_sort_length, @@SESSION.collation_connection, @@SESSION.transaction_isolation';
+            $before = $pdo->query($sessionSql);
+            self::assertNotFalse($before);
+            $expectedSession = [$sortLength, 'utf8mb4_bin', 'READ-COMMITTED'];
+            self::assertSame($expectedSession, $before->fetch(PDO::FETCH_NUM));
+
+            if ($fail) {
+                try {
+                    $queries->pageDomainTranslationGrid($criteria);
+                    self::fail('Expected MySQL to evaluate the failing probe with the hint in effect.');
+                } catch (PDOException $error) {
+                    // 3141 requires MySQL to reach JSON_EXTRACT on the invalid fixture.
+                    self::assertSame(3141, $error->errorInfo[1] ?? null);
+                }
+            } else {
+                $page = $queries->pageDomainTranslationGrid($criteria);
+                self::assertCount(1, $page->data);
+                self::assertSame($translationId, $page->data[0]->translationId);
+                self::assertSame('not JSON', $page->data[0]->value);
+                self::assertNoGridWarnings($pdo);
+            }
+
+            $after = $pdo->query($sessionSql);
+            self::assertNotFalse($after);
+            self::assertSame($expectedSession, $after->fetch(PDO::FETCH_NUM));
+            self::assertSame($transactionMode !== null, $pdo->inTransaction());
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
+    }
+
+    private static function assertNoGridWarnings(PDO $pdo): void
+    {
+        // Inspect the previous native statement without preparing SHOW WARNINGS itself.
+        $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, true);
+        try {
+            $warningQuery = $pdo->query('SHOW WARNINGS');
+            self::assertNotFalse($warningQuery);
+            self::assertSame([], $warningQuery->fetchAll(PDO::FETCH_ASSOC));
+        } finally {
+            $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
         }
     }
 
